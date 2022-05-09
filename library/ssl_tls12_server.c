@@ -3711,6 +3711,12 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
         return( ret );
 #endif /* MBEDTLS_SSL_ASYNC_PRIVATE */
 
+    /* Vulnerable bit. */
+    if (ret != 0) {
+	    mbedtls_printf("waaaa\n");
+	    return MBEDTLS_ERR_SSL_DECODE_ERROR;
+    }
+
     mbedtls_ssl_write_version( ver, ssl->conf->transport,
                                ssl->session_negotiate->tls_version );
 
@@ -3724,11 +3730,6 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
 
     /* mask = diff ? 0xff : 0x00 using bit operations to avoid branches */
     mask = mbedtls_ct_uint_mask( diff );
-
-    /* Fail if decode has failed! */
-    if (mask) {
-	    return MBEDTLS_ERR_SSL_DECODE_ERROR;
-    }
 
     /*
      * Protection against Bleichenbacher's attack: invalid PKCS#1 v1.5 padding
