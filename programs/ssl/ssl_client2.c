@@ -1308,6 +1308,21 @@ int main( int argc, char *argv[] )
         {
             opt.mki = q;
         }
+#ifdef CUSTOM_PMS_CLIENT
+	else if (strcmp(p, "custom_pms") == 0) {
+	    unsigned pmslen = strlen(q) >> 1;
+	    unsigned char * custom_pms = (unsigned char *)malloc(pmslen);
+	    if (custom_pms == NULL) {
+	        mbedtls_printf("Error: could not allocate custom pms buffer.\n");
+		goto usage;
+	    }
+	    unsigned idx;
+	    for (idx = 0; idx < pmslen; idx++) {
+	        sscanf(q + (idx << 1), "%2hhx", &custom_pms[idx]);
+	    }
+	    set_custom_pms(custom_pms, pmslen);
+	}
+#endif
         else
             goto usage;
     }

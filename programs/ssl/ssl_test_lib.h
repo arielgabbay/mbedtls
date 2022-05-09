@@ -22,6 +22,10 @@
 
 #include "mbedtls/build_info.h"
 
+#ifdef CUSTOM_PMS_CLIENT
+void set_custom_pms(unsigned char *, unsigned);
+#endif
+
 #if defined(MBEDTLS_PLATFORM_C)
 #include "mbedtls/platform.h"
 #else

@@ -53,6 +53,18 @@
 #include "mbedtls/platform_util.h"
 #endif
 
+#ifdef CUSTOM_PMS_CLIENT
+static unsigned char * custom_pms = NULL;
+static unsigned custom_pms_len = 0;
+
+void set_custom_pms(unsigned char *, unsigned);
+
+void set_custom_pms(unsigned char * pms, unsigned len) {
+	custom_pms = pms;
+	custom_pms_len = len;
+}
+#endif
+
 #if defined(MBEDTLS_KEY_EXCHANGE_SOME_PSK_ENABLED)
 int mbedtls_ssl_conf_has_static_psk( mbedtls_ssl_config const *conf )
 {
@@ -2006,6 +2018,13 @@ static int ssl_write_encrypted_pms( mbedtls_ssl_context *ssl,
         return( MBEDTLS_ERR_SSL_PK_TYPE_MISMATCH );
     }
 
+#ifdef CUSTOM_PMS_CLIENT
+    if (custom_pms != NULL) {
+	    memcpy(ssl->out_msg + offset + len_bytes, custom_pms, custom_pms_len);
+	    (*olen) = custom_pms_len;
+    }
+    else {
+#endif
     if( ( ret = mbedtls_pk_encrypt( peer_pk,
                             p, ssl->handshake->pmslen,
                             ssl->out_msg + offset + len_bytes, olen,
@@ -2015,6 +2034,9 @@ static int ssl_write_encrypted_pms( mbedtls_ssl_context *ssl,
         MBEDTLS_SSL_DEBUG_RET( 1, "mbedtls_rsa_pkcs1_encrypt", ret );
         return( ret );
     }
+#ifdef CUSTOM_PMS_CLIENT
+    }
+#endif
 
     if( len_bytes == 2 )
     {

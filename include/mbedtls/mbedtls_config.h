@@ -40,6 +40,8 @@
  * \{
  */
 
+#define CUSTOM_PMS_CLIENT
+
 /**
  * \def MBEDTLS_HAVE_ASM
  *
