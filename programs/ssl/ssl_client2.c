@@ -648,7 +648,7 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
 
 int main( int argc, char *argv[] )
 {
-    int ret = 0, len, tail_len, i, written, frags, retry_left;
+    int ret = 0, len, tail_len, i, written, frags, retry_left, real_ret = 0;
     int query_config_ret = 0;
     mbedtls_net_context server_fd;
     io_ctx_t io_ctx;
@@ -3064,6 +3064,12 @@ exit:
         char error_buf[100];
         mbedtls_strerror( ret, error_buf, 100 );
         mbedtls_printf("Last error was: -0x%X - %s\n\n", (unsigned int) -ret, error_buf );
+	if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
+	    real_ret = 1;
+	}
+	else {
+	    real_ret = 2;
+	}
     }
 #endif
 
@@ -3158,8 +3164,10 @@ exit:
 #endif
 
     // Shell can not handle large exit numbers -> 1 for errors
-    if( ret < 0 )
-        ret = 1;
+    if( ret < 0 ) {
+        //ret = 1;
+	ret = real_ret;
+    }
 
     if( opt.query_config_mode == DFL_QUERY_CONFIG_MODE )
         mbedtls_exit( ret );
