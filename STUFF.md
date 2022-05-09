@@ -2,7 +2,15 @@
 
 ## Commands to run
 
-Create an RSA key for the server and a certificate using openssl (or something else). We henceforth assume these files are called `priv.key.pem`  and `cert.crt`, respectively.
+Create an RSA key for the server and a certificate using openssl (or something else). We henceforth assume these files are called `priv.key.pem`  and `cert.crt`, respectively:
+
+```
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out priv.key.pem
+openssl req -new -key example-rsa.key.pem -out request.csr
+openssl x509 -req -days 365 -in request.csr -signkey example-rsa.key.pem -out cert.crt
+```
+
+
 
 After running `make`, we can run the server:
 
