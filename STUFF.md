@@ -6,8 +6,8 @@ Create an RSA key for the server and a certificate using openssl (or something e
 
 ```
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out priv.key.pem
-openssl req -new -key example-rsa.key.pem -out request.csr
-openssl x509 -req -days 365 -in request.csr -signkey example-rsa.key.pem -out cert.crt
+openssl req -new -key priv.key.pem -out request.csr
+openssl x509 -req -days 365 -in request.csr -signkey priv.key.pem -out cert.crt
 ```
 
 

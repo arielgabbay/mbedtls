@@ -222,7 +222,7 @@ def bleichenbacher_attack(k, key, c, oracle, verbose=False):
 
 import time
 if __name__ == "__main__":
-    n_length = 2048
+    n_length = 1024
     keyfile = tempfile.NamedTemporaryFile(suffix=".key.pem", delete=False)
     reqfile = tempfile.NamedTemporaryFile(suffix=".csr", delete=False)
     crtfile = tempfile.NamedTemporaryFile(suffix=".crt", delete=False)
