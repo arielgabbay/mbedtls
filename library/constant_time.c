@@ -800,6 +800,12 @@ int mbedtls_mpi_lt_mpi_ct( const mbedtls_mpi *X,
 
 #if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT)
 
+#define NOT_CONSTANT_TIME do { \
+	if (bad) { \
+		return -MBEDTLS_ERR_RSA_INVALID_PADDING; \
+	} \
+} while (0)
+
 int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
                                           size_t ilen,
                                           unsigned char *output,
@@ -831,26 +837,34 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     /* Check and get padding length in constant time and constant
      * memory trace. The first byte must be 0. */
     bad |= input[0];
+    NOT_CONSTANT_TIME;
 
 
     /* Decode EME-PKCS1-v1_5 padding: 0x00 || 0x02 || PS || 0x00
      * where PS must be at least 8 nonzero bytes. */
     bad |= input[1] ^ MBEDTLS_RSA_CRYPT;
+    NOT_CONSTANT_TIME;
 
     /* Read the whole buffer. Set pad_done to nonzero if we find
      * the 0x00 byte and remember the padding length in pad_count. */
     for( i = 2; i < ilen; i++ )
     {
         pad_done  |= ((input[i] | (unsigned char)-input[i]) >> 7) ^ 1;
+	/* More non-constant-time checks added. */
+	if (pad_done) {
+		break;
+	}
         pad_count += ((pad_done | (unsigned char)-pad_done) >> 7) ^ 1;
     }
 
 
     /* If pad_done is still zero, there's no data, only unfinished padding. */
     bad |= mbedtls_ct_uint_if( pad_done, 0, 1 );
+    NOT_CONSTANT_TIME;
 
     /* There must be at least 8 bytes of padding. */
     bad |= mbedtls_ct_size_gt( 8, pad_count );
+    NOT_CONSTANT_TIME;
 
     /* If the padding is valid, set plaintext_size to the number of
      * remaining bytes after stripping the padding. If the padding
@@ -878,6 +892,10 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
                     mbedtls_ct_uint_if( output_too_large,
                                         - MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE,
                                         0 ) );
+    /* More non-constant-time stuff. */
+    if (ret) {
+	    return ret;
+    }
 
     /* If the padding is bad or the plaintext is too large, zero the
      * data that we're about to copy to the output buffer.
@@ -886,6 +904,7 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
      * avoid leaking the padding validity through overall timing or
      * through memory or cache access patterns. */
     bad = mbedtls_ct_uint_mask( bad | output_too_large );
+    NOT_CONSTANT_TIME;
     for( i = 11; i < ilen; i++ )
         input[i] &= ~bad;
 

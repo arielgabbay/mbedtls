@@ -3713,7 +3713,6 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
 
     /* Vulnerable bit. */
     if (ret != 0) {
-	    mbedtls_printf("waaaa\n");
 	    return MBEDTLS_ERR_SSL_DECODE_ERROR;
     }
 
