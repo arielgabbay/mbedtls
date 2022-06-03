@@ -116,6 +116,7 @@ APPS = \
 	ssl/mini_client \
 	ssl/ssl_client1 \
 	ssl/ssl_client2 \
+	ssl/ssl_client.cpython-38-x86_64-linux-gnu.so \
 	ssl/ssl_context_info \
 	ssl/ssl_fork_server \
 	ssl/ssl_mail_client \
@@ -349,6 +350,11 @@ ssl/ssl_test_lib.o: ssl/ssl_test_lib.c ssl/ssl_test_lib.h $(DEP)
 ssl/ssl_client2$(EXEXT): ssl/ssl_client2.c $(SSL_TEST_DEPS)
 	echo "  CC    ssl/ssl_client2.c"
 	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) ssl/ssl_client2.c $(SSL_TEST_OBJECTS) $(LOCAL_LDFLAGS) $(LDFLAGS) -o $@
+
+ssl/ssl_client.cpython-38-x86_64-linux-gnu.so: ssl/ssl_client_python.c ssl/setup.py $(SSL_TEST_DEPS)
+	echo "  CC    $@"
+	python3.8 ssl/setup.py build_ext --inplace
+	mv $(notdir $@) $@
 
 ssl/ssl_server$(EXEXT): ssl/ssl_server.c $(DEP)
 	echo "  CC    ssl/ssl_server.c"
