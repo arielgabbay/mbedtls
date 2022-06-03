@@ -41,6 +41,8 @@ int main( void )
 }
 #else /* !MBEDTLS_SSL_TEST_IMPOSSIBLE && MBEDTLS_SSL_CLI_C */
 
+#define mbedtls_dont_printf(...) do {} while (0)
+
 /* Size of memory to be allocated for the heap, when using the library's memory
  * management and MBEDTLS_MEMORY_BUFFER_ALLOC_C is enabled. */
 #define MEMORY_HEAP_SIZE      120000
@@ -541,7 +543,7 @@ static int my_verify( void *data, mbedtls_x509_crt *crt,
     char buf[1024];
     ((void) data);
 
-    mbedtls_printf( "\nVerify requested for (Depth %d):\n", depth );
+    mbedtls_dont_printf( "\nVerify requested for (Depth %d):\n", depth );
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
     mbedtls_x509_crt_info( buf, sizeof( buf ) - 1, "", crt );
@@ -551,18 +553,18 @@ static int my_verify( void *data, mbedtls_x509_crt *crt,
     if( opt.debug_level == 0 )
         return( 0 );
 
-    mbedtls_printf( "%s", buf );
+    mbedtls_dont_printf( "%s", buf );
 #else
     ((void) crt);
     ((void) depth);
 #endif
 
     if ( ( *flags ) == 0 )
-        mbedtls_printf( "  This certificate has no flags\n" );
+        mbedtls_dont_printf( "  This certificate has no flags\n" );
     else
     {
         x509_crt_verify_info( buf, sizeof( buf ), "  ! ", *flags );
-        mbedtls_printf( "%s\n", buf );
+        mbedtls_dont_printf( "%s\n", buf );
     }
 
     return( 0 );
@@ -595,7 +597,7 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
                                     NULL, NULL );
     if( ret != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_ssl_get_peer_cid returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_get_peer_cid returned -0x%x\n\n",
                         (unsigned int) -ret );
         return( ret );
     }
@@ -604,14 +606,14 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
     {
         if( opt.cid_enabled == MBEDTLS_SSL_CID_ENABLED )
         {
-            mbedtls_printf( "(%s) Use of Connection ID was rejected by the server.\n",
+            mbedtls_dont_printf( "(%s) Use of Connection ID was rejected by the server.\n",
                             additional_description );
         }
     }
     else
     {
         size_t idx=0;
-        mbedtls_printf( "(%s) Use of Connection ID has been negotiated.\n",
+        mbedtls_dont_printf( "(%s) Use of Connection ID has been negotiated.\n",
                         additional_description );
 
         /* Ask for just the length of the peer's CID. */
@@ -619,7 +621,7 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
                                         NULL, &peer_cid_len );
         if( ret != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_get_peer_cid returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_get_peer_cid returned -0x%x\n\n",
                             (unsigned int) -ret );
             return( ret );
         }
@@ -629,19 +631,19 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
                                         peer_cid, &peer_cid_len );
         if( ret != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_get_peer_cid returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_get_peer_cid returned -0x%x\n\n",
                             (unsigned int) -ret );
             return( ret );
         }
-        mbedtls_printf( "(%s) Peer CID (length %u Bytes): ",
+        mbedtls_dont_printf( "(%s) Peer CID (length %u Bytes): ",
                         additional_description,
                         (unsigned) peer_cid_len );
         while( idx < peer_cid_len )
         {
-            mbedtls_printf( "%02x ", peer_cid[ idx ] );
+            mbedtls_dont_printf( "%02x ", peer_cid[ idx ] );
             idx++;
         }
-        mbedtls_printf( "\n" );
+        mbedtls_dont_printf( "\n" );
     }
 
     return( 0 );
@@ -700,6 +702,22 @@ success:
 	return ret;
 }
 
+#ifdef CUSTOM_PMS_CLIENT
+static int update_custom_pms(const char * pms) {
+	unsigned pmslen = strlen(pms) >> 1;
+	unsigned idx;
+	unsigned char * custom_pms = (unsigned char *)malloc(pmslen);
+	if (custom_pms == NULL) {
+		return 1;
+	}
+	for (idx = 0; idx < pmslen; idx++) {
+		sscanf(pms + (idx << 1), "%2hhx", &custom_pms[idx]);
+	}
+	set_custom_pms(custom_pms, pmslen);
+	return 0;
+}
+#endif
+
 PyObject * set_opts(PyObject * self, PyObject * args) {
 	(void)self;
 	int ret = 1, argc, i;
@@ -718,22 +736,22 @@ usage:
 		if( ret == 0 )
 			ret = 1;
 
-		mbedtls_printf( USAGE1 );
-		mbedtls_printf( USAGE2 );
-		mbedtls_printf( USAGE3 );
-		mbedtls_printf( USAGE4 );
+		mbedtls_dont_printf( USAGE1 );
+		mbedtls_dont_printf( USAGE2 );
+		mbedtls_dont_printf( USAGE3 );
+		mbedtls_dont_printf( USAGE4 );
 
 		list = mbedtls_ssl_list_ciphersuites();
 		while( *list )
 		{
-			mbedtls_printf(" %-42s", mbedtls_ssl_get_ciphersuite_name( *list ) );
+			mbedtls_dont_printf(" %-42s", mbedtls_ssl_get_ciphersuite_name( *list ) );
 			list++;
 			if( !*list )
 				break;
-			mbedtls_printf(" %s\n", mbedtls_ssl_get_ciphersuite_name( *list ) );
+			mbedtls_dont_printf(" %s\n", mbedtls_ssl_get_ciphersuite_name( *list ) );
 			list++;
 		}
-		mbedtls_printf("\n");
+		mbedtls_dont_printf("\n");
 		goto exit;
 	}
 
@@ -1235,17 +1253,10 @@ usage:
 		}
 #ifdef CUSTOM_PMS_CLIENT
 		else if (strcmp(p, "custom_pms") == 0) {
-			unsigned pmslen = strlen(q) >> 1;
-			unsigned char * custom_pms = (unsigned char *)malloc(pmslen);
-			if (custom_pms == NULL) {
-				mbedtls_printf("Error: could not allocate custom pms buffer.\n");
-				goto usage;
+			if (update_custom_pms(q)) {
+				mbedtls_dont_printf("Error setting custom PMS.\n");
+				goto exit;
 			}
-			unsigned idx;
-			for (idx = 0; idx < pmslen; idx++) {
-				sscanf(q + (idx << 1), "%2hhx", &custom_pms[idx]);
-			}
-			set_custom_pms(custom_pms, pmslen);
 		}
 #endif
 		else
@@ -1254,7 +1265,7 @@ usage:
 
 	if( opt.nss_keylog != 0 && opt.eap_tls != 0 )
 	{
-		mbedtls_printf( "Error: eap_tls and nss_keylog options cannot be used together.\n" );
+		mbedtls_dont_printf( "Error: eap_tls and nss_keylog options cannot be used together.\n" );
 		goto usage;
 	}
 
@@ -1263,7 +1274,7 @@ usage:
 	 * refers to the underlying net_context. */
 	if( opt.event == 1 && opt.nbio != 1 )
 	{
-		mbedtls_printf( "Warning: event-driven IO mandates nbio=1 - overwrite\n" );
+		mbedtls_dont_printf( "Warning: event-driven IO mandates nbio=1 - overwrite\n" );
 		opt.nbio = 1;
 	}
 
@@ -1280,7 +1291,7 @@ usage:
 		if( mbedtls_test_unhexify( psk, sizeof( psk ),
 					opt.psk, &psk_len ) != 0 )
 		{
-			mbedtls_printf( "pre-shared key not valid\n" );
+			mbedtls_dont_printf( "pre-shared key not valid\n" );
 			goto exit;
 		}
 	}
@@ -1291,14 +1302,14 @@ usage:
 	{
 		if( opt.psk == NULL )
 		{
-			mbedtls_printf( "psk_opaque set but no psk to be imported specified.\n" );
+			mbedtls_dont_printf( "psk_opaque set but no psk to be imported specified.\n" );
 			ret = 2;
 			goto usage;
 		}
 
 		if( opt.force_ciphersuite[0] <= 0 )
 		{
-			mbedtls_printf( "opaque PSKs are only supported in conjunction with forcing TLS 1.2 and a PSK-only ciphersuite through the 'force_ciphersuite' option.\n" );
+			mbedtls_dont_printf( "opaque PSKs are only supported in conjunction with forcing TLS 1.2 and a PSK-only ciphersuite through the 'force_ciphersuite' option.\n" );
 			ret = 2;
 			goto usage;
 		}
@@ -1314,14 +1325,14 @@ usage:
 		if( opt.max_version != -1 &&
 				ciphersuite_info->min_tls_version > opt.max_version )
 		{
-			mbedtls_printf( "forced ciphersuite not allowed with this protocol version\n" );
+			mbedtls_dont_printf( "forced ciphersuite not allowed with this protocol version\n" );
 			ret = 2;
 			goto usage;
 		}
 		if( opt.min_version != -1 &&
 				ciphersuite_info->max_tls_version < opt.min_version )
 		{
-			mbedtls_printf( "forced ciphersuite not allowed with this protocol version\n" );
+			mbedtls_dont_printf( "forced ciphersuite not allowed with this protocol version\n" );
 			ret = 2;
 			goto usage;
 		}
@@ -1362,7 +1373,7 @@ usage:
 	if( mbedtls_test_unhexify( cid, sizeof( cid ),
 				opt.cid_val, &cid_len ) != 0 )
 	{
-		mbedtls_printf( "CID not valid\n" );
+		mbedtls_dont_printf( "CID not valid\n" );
 		goto exit;
 	}
 
@@ -1376,7 +1387,7 @@ usage:
 	if( mbedtls_test_unhexify( cid_renego, sizeof( cid_renego ),
 				opt.cid_val_renego, &cid_renego_len ) != 0 )
 	{
-		mbedtls_printf( "CID not valid\n" );
+		mbedtls_dont_printf( "CID not valid\n" );
 		goto exit;
 	}
 #endif /* MBEDTLS_SSL_DTLS_CONNECTION_ID */
@@ -1410,24 +1421,24 @@ usage:
 				}
 				else
 				{
-					mbedtls_printf( "unknown curve %s\n", q );
-					mbedtls_printf( "supported curves: " );
+					mbedtls_dont_printf( "unknown curve %s\n", q );
+					mbedtls_dont_printf( "supported curves: " );
 					for( curve_cur = mbedtls_ecp_curve_list();
 							curve_cur->grp_id != MBEDTLS_ECP_DP_NONE;
 							curve_cur++ )
 					{
-						mbedtls_printf( "%s ", curve_cur->name );
+						mbedtls_dont_printf( "%s ", curve_cur->name );
 					}
-					mbedtls_printf( "\n" );
+					mbedtls_dont_printf( "\n" );
 					goto exit;
 				}
 			}
 
-			mbedtls_printf("Number of curves: %d\n", i );
+			mbedtls_dont_printf("Number of curves: %d\n", i );
 
 			if( i == CURVE_LIST_SIZE - 1 && *p != '\0' )
 			{
-				mbedtls_printf( "curves list too long, maximum %d",
+				mbedtls_dont_printf( "curves list too long, maximum %d",
 						CURVE_LIST_SIZE - 1 );
 				goto exit;
 			}
@@ -1485,23 +1496,23 @@ usage:
 			}
 			else
 			{
-				mbedtls_printf( "unknown signature algorithm %s\n", q );
-				mbedtls_printf( "supported signature algorithms: " );
-				mbedtls_printf( "ecdsa_secp256r1_sha256 " );
-				mbedtls_printf( "ecdsa_secp384r1_sha384 " );
-				mbedtls_printf( "ecdsa_secp521r1_sha512 " );
-				mbedtls_printf( "rsa_pss_rsae_sha256 " );
-				mbedtls_printf( "rsa_pss_rsae_sha384 " );
-				mbedtls_printf( "rsa_pss_rsae_sha512 " );
-				mbedtls_printf( "rsa_pkcs1_sha256 " );
-				mbedtls_printf( "\n" );
+				mbedtls_dont_printf( "unknown signature algorithm %s\n", q );
+				mbedtls_dont_printf( "supported signature algorithms: " );
+				mbedtls_dont_printf( "ecdsa_secp256r1_sha256 " );
+				mbedtls_dont_printf( "ecdsa_secp384r1_sha384 " );
+				mbedtls_dont_printf( "ecdsa_secp521r1_sha512 " );
+				mbedtls_dont_printf( "rsa_pss_rsae_sha256 " );
+				mbedtls_dont_printf( "rsa_pss_rsae_sha384 " );
+				mbedtls_dont_printf( "rsa_pss_rsae_sha512 " );
+				mbedtls_dont_printf( "rsa_pkcs1_sha256 " );
+				mbedtls_dont_printf( "\n" );
 				goto exit;
 			}
 		}
 
 		if( i == ( SIG_ALG_LIST_SIZE - 1 ) && *p != '\0' )
 		{
-			mbedtls_printf( "signature algorithm list too long, maximum %d",
+			mbedtls_dont_printf( "signature algorithm list too long, maximum %d",
 					SIG_ALG_LIST_SIZE - 1 );
 			goto exit;
 		}
@@ -1543,7 +1554,6 @@ PyObject * query(PyObject * self, PyObject * args)
 	mbedtls_net_context server_fd;
 	io_ctx_t io_ctx;
 	(void)self;
-	(void)args;
 
 #if defined(MBEDTLS_SSL_PROTO_TLS1_3) && \
 	defined(MBEDTLS_KEY_EXCHANGE_WITH_CERT_ENABLED)
@@ -1623,6 +1633,10 @@ PyObject * query(PyObject * self, PyObject * args)
         MBEDTLS_TLS_SRTP_UNSET
     };
 #endif /* MBEDTLS_SSL_DTLS_SRTP */
+#ifdef CUSTOM_PMS_CLIENT
+    const char * custom_pms_str;
+    Py_ssize_t custom_pms_len;
+#endif
 
 #if defined(MBEDTLS_MEMORY_BUFFER_ALLOC_C)
     mbedtls_memory_buffer_alloc_init( alloc_buf, sizeof(alloc_buf) );
@@ -1663,23 +1677,30 @@ PyObject * query(PyObject * self, PyObject * args)
     mbedtls_test_enable_insecure_external_rng( );
 #endif  /* MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG */
 
+#ifdef CUSTOM_PMS_CLIENT
+    if (PyArg_ParseTuple(args, "s#", &custom_pms_str, &custom_pms_len)) {
+	    if (update_custom_pms(custom_pms_str)) {
+		    goto exit;
+	    }
+    }
+#endif
 
     /*
      * 0. Initialize the RNG and the session data
      */
-    mbedtls_printf( "\n  . Seeding the random number generator..." );
+    mbedtls_dont_printf( "\n  . Seeding the random number generator..." );
     fflush( stdout );
 
     ret = rng_seed( &rng, opt.reproducible, pers );
     if( ret != 0 )
         goto exit;
-    mbedtls_printf( " ok\n" );
+    mbedtls_dont_printf( " ok\n" );
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     /*
      * 1.1. Load the trusted CA
      */
-    mbedtls_printf( "  . Loading the CA root certificate ..." );
+    mbedtls_dont_printf( "  . Loading the CA root certificate ..." );
     fflush( stdout );
 
     if( strcmp( opt.ca_path, "none" ) == 0 ||
@@ -1718,19 +1739,19 @@ PyObject * query(PyObject * self, PyObject * args)
     }
     if( ret < 0 )
     {
-        mbedtls_printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
 
-    mbedtls_printf( " ok (%d skipped)\n", ret );
+    mbedtls_dont_printf( " ok (%d skipped)\n", ret );
 
     /*
      * 1.2. Load own certificate and private key
      *
      * (can be skipped if client authentication is not required)
      */
-    mbedtls_printf( "  . Loading the client cert. and key..." );
+    mbedtls_dont_printf( "  . Loading the client cert. and key..." );
     fflush( stdout );
 
     if( strcmp( opt.crt_file, "none" ) == 0 )
@@ -1746,7 +1767,7 @@ PyObject * query(PyObject * self, PyObject * args)
                 mbedtls_test_cli_crt_len );
     if( ret != 0 )
     {
-        mbedtls_printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
@@ -1764,7 +1785,7 @@ PyObject * query(PyObject * self, PyObject * args)
                 mbedtls_test_cli_key_len, NULL, 0, rng_get, &rng );
     if( ret != 0 )
     {
-        mbedtls_printf( " failed\n  !  mbedtls_pk_parse_key returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  !  mbedtls_pk_parse_key returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
@@ -1789,21 +1810,21 @@ PyObject * query(PyObject * self, PyObject * args)
                                                PSA_KEY_USAGE_SIGN_HASH,
                                                psa_alg2 ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  !  "
+            mbedtls_dont_printf( " failed\n  !  "
                             "mbedtls_pk_wrap_as_opaque returned -0x%x\n\n", (unsigned int)  -ret );
             goto exit;
         }
     }
 #endif /* MBEDTLS_USE_PSA_CRYPTO */
 
-    mbedtls_printf( " ok (key type: %s)\n",
+    mbedtls_dont_printf( " ok (key type: %s)\n",
                     strlen( opt.key_file ) ? mbedtls_pk_get_name( &pkey ) : "none" );
 #endif /* MBEDTLS_X509_CRT_PARSE_C */
 
     /*
      * 2. Setup stuff
      */
-    mbedtls_printf( "  . Setting up the SSL/TLS structure..." );
+    mbedtls_dont_printf( "  . Setting up the SSL/TLS structure..." );
     fflush( stdout );
 
     if( ( ret = mbedtls_ssl_config_defaults( &conf,
@@ -1811,7 +1832,7 @@ PyObject * query(PyObject * self, PyObject * args)
                     opt.transport,
                     MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_ssl_config_defaults returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_config_defaults returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
@@ -1839,7 +1860,7 @@ PyObject * query(PyObject * self, PyObject * args)
             opt.cid_enabled_renego == 1 &&
             cid_len != cid_renego_len )
         {
-            mbedtls_printf( "CID length must not change during renegotiation\n" );
+            mbedtls_dont_printf( "CID length must not change during renegotiation\n" );
             goto usage;
         }
 
@@ -1852,7 +1873,7 @@ PyObject * query(PyObject * self, PyObject * args)
 
         if( ret != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_cid_len returned -%#04x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_conf_cid_len returned -%#04x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
@@ -1874,7 +1895,7 @@ PyObject * query(PyObject * self, PyObject * args)
 #if defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH)
     if( ( ret = mbedtls_ssl_conf_max_frag_len( &conf, opt.mfl_code ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_max_frag_len returned %d\n\n",
+        mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_conf_max_frag_len returned %d\n\n",
                         ret );
         goto exit;
     }
@@ -1896,7 +1917,7 @@ PyObject * query(PyObject * self, PyObject * args)
 
         if( ret != 0 )
         {
-            mbedtls_printf( " failed\n  ! "
+            mbedtls_dont_printf( " failed\n  ! "
                             "mbedtls_ssl_conf_dtls_srtp_protection_profiles returned %d\n\n",
                             ret );
             goto exit;
@@ -1905,7 +1926,7 @@ PyObject * query(PyObject * self, PyObject * args)
     }
     else if( opt.force_srtp_profile != 0 )
     {
-        mbedtls_printf( " failed\n  ! must enable use_srtp to force srtp profile\n\n" );
+        mbedtls_dont_printf( " failed\n  ! must enable use_srtp to force srtp profile\n\n" );
         goto exit;
     }
 #endif /* MBEDTLS_SSL_DTLS_SRTP */
@@ -1929,7 +1950,7 @@ PyObject * query(PyObject * self, PyObject * args)
     if( opt.alpn_string != NULL )
         if( ( ret = mbedtls_ssl_conf_alpn_protocols( &conf, alpn_list ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_alpn_protocols returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_conf_alpn_protocols returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -1983,7 +2004,7 @@ PyObject * query(PyObject * self, PyObject * args)
     {
         if( ( ret = mbedtls_ssl_conf_own_cert( &conf, &clicert, &pkey ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_own_cert returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_conf_own_cert returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -2023,7 +2044,7 @@ PyObject * query(PyObject * self, PyObject * args)
                                   (const unsigned char *) opt.psk_identity,
                                   strlen( opt.psk_identity ) ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_psk_opaque returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_conf_psk_opaque returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -2037,7 +2058,7 @@ PyObject * query(PyObject * self, PyObject * args)
                              strlen( opt.psk_identity ) );
         if( ret != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_conf_psk returned %d\n\n", ret );
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_conf_psk returned %d\n\n", ret );
             goto exit;
         }
     }
@@ -2051,7 +2072,7 @@ PyObject * query(PyObject * self, PyObject * args)
 
     if( ( ret = mbedtls_ssl_setup( &ssl, &conf ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_ssl_setup returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_setup returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
@@ -2078,7 +2099,7 @@ PyObject * query(PyObject * self, PyObject * args)
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     if( ( ret = mbedtls_ssl_set_hostname( &ssl, opt.server_name ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n",
+        mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n",
                         ret );
         goto exit;
     }
@@ -2091,7 +2112,7 @@ PyObject * query(PyObject * self, PyObject * args)
                         (const unsigned char *) opt.ecjpake_pw,
                                         strlen( opt.ecjpake_pw ) ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_set_hs_ecjpake_password returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_set_hs_ecjpake_password returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -2114,7 +2135,7 @@ PyObject * query(PyObject * self, PyObject * args)
         if( ( ret = mbedtls_ssl_set_cid( &ssl, opt.cid_enabled,
                                          cid, cid_len ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_set_cid returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_set_cid returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -2142,7 +2163,7 @@ PyObject * query(PyObject * self, PyObject * args)
         if( mbedtls_test_unhexify( mki, sizeof( mki ),
                                    opt.mki,&mki_len ) != 0 )
         {
-            mbedtls_printf( "mki value not valid hex\n" );
+            mbedtls_dont_printf( "mki value not valid hex\n" );
             goto exit;
         }
 
@@ -2150,13 +2171,13 @@ PyObject * query(PyObject * self, PyObject * args)
         if( ( ret = mbedtls_ssl_dtls_srtp_set_mki_value( &ssl, mki,
                                                          (uint16_t) strlen( opt.mki ) / 2 ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_dtls_srtp_set_mki_value returned %d\n\n", ret );
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_dtls_srtp_set_mki_value returned %d\n\n", ret );
             goto exit;
         }
     }
 #endif
 
-    mbedtls_printf( " ok\n" );
+    mbedtls_dont_printf( " ok\n" );
 
     /*
      * 3. Start the connection
@@ -2164,7 +2185,7 @@ PyObject * query(PyObject * self, PyObject * args)
     if( opt.server_addr == NULL)
         opt.server_addr = opt.server_name;
 
-    mbedtls_printf( "  . Connecting to %s/%s/%s...",
+    mbedtls_dont_printf( "  . Connecting to %s/%s/%s...",
             opt.transport == MBEDTLS_SSL_TRANSPORT_STREAM ? "tcp" : "udp",
             opt.server_addr, opt.server_port );
     fflush( stdout );
@@ -2174,7 +2195,7 @@ PyObject * query(PyObject * self, PyObject * args)
                        opt.transport == MBEDTLS_SSL_TRANSPORT_STREAM ?
                        MBEDTLS_NET_PROTO_TCP : MBEDTLS_NET_PROTO_UDP ) ) != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_net_connect returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  ! mbedtls_net_connect returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
@@ -2185,17 +2206,17 @@ PyObject * query(PyObject * self, PyObject * args)
         ret = mbedtls_net_set_block( &server_fd );
     if( ret != 0 )
     {
-        mbedtls_printf( " failed\n  ! net_set_(non)block() returned -0x%x\n\n",
+        mbedtls_dont_printf( " failed\n  ! net_set_(non)block() returned -0x%x\n\n",
                         (unsigned int) -ret );
         goto exit;
     }
 
-    mbedtls_printf( " ok\n" );
+    mbedtls_dont_printf( " ok\n" );
 
     /*
      * 4. Handshake
      */
-    mbedtls_printf( "  . Performing the SSL/TLS handshake..." );
+    mbedtls_dont_printf( "  . Performing the SSL/TLS handshake..." );
     fflush( stdout );
 
     while( ( ret = mbedtls_ssl_handshake( &ssl ) ) != 0 )
@@ -2204,17 +2225,17 @@ PyObject * query(PyObject * self, PyObject * args)
             ret != MBEDTLS_ERR_SSL_WANT_WRITE &&
             ret != MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n",
                             (unsigned int) -ret );
             if( ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED )
-                mbedtls_printf(
+                mbedtls_dont_printf(
                     "    Unable to verify the server's certificate. "
                         "Either it is invalid,\n"
                     "    or you didn't set ca_file or ca_path "
                         "to an appropriate value.\n"
                     "    Alternatively, you may want to use "
                         "auth_mode=optional for testing purposes.\n" );
-            mbedtls_printf( "\n" );
+            mbedtls_dont_printf( "\n" );
             goto exit;
         }
 
@@ -2237,37 +2258,37 @@ PyObject * query(PyObject * self, PyObject * args)
     }
 
     {
-        int suite_id = mbedtls_ssl_get_ciphersuite_id_from_ssl( &ssl );
-        const mbedtls_ssl_ciphersuite_t *ciphersuite_info;
-        ciphersuite_info = mbedtls_ssl_ciphersuite_from_id( suite_id );
+        //int suite_id = mbedtls_ssl_get_ciphersuite_id_from_ssl( &ssl );
+        //const mbedtls_ssl_ciphersuite_t *ciphersuite_info;
+        //ciphersuite_info = mbedtls_ssl_ciphersuite_from_id( suite_id );
 
-        mbedtls_printf( " ok\n    [ Protocol is %s ]\n"
+        /*mbedtls_dont_printf( " ok\n    [ Protocol is %s ]\n"
                              "    [ Ciphersuite is %s ]\n"
                              "    [ Key size is %u ]\n",
           mbedtls_ssl_get_version( &ssl ),
           mbedtls_ssl_ciphersuite_get_name( ciphersuite_info ),
           (unsigned int)
-            mbedtls_ssl_ciphersuite_get_cipher_key_bitlen( ciphersuite_info ) );
+            mbedtls_ssl_ciphersuite_get_cipher_key_bitlen( ciphersuite_info ) );*/
     }
 
     if( ( ret = mbedtls_ssl_get_record_expansion( &ssl ) ) >= 0 )
-        mbedtls_printf( "    [ Record expansion is %d ]\n", ret );
+        mbedtls_dont_printf( "    [ Record expansion is %d ]\n", ret );
     else
-        mbedtls_printf( "    [ Record expansion is unknown ]\n" );
+        mbedtls_dont_printf( "    [ Record expansion is unknown ]\n" );
 
 #if defined(MBEDTLS_SSL_MAX_FRAGMENT_LENGTH)
-    mbedtls_printf( "    [ Maximum incoming record payload length is %u ]\n",
+    mbedtls_dont_printf( "    [ Maximum incoming record payload length is %u ]\n",
                     (unsigned int) mbedtls_ssl_get_max_in_record_payload( &ssl ) );
-    mbedtls_printf( "    [ Maximum outgoing record payload length is %u ]\n",
+    mbedtls_dont_printf( "    [ Maximum outgoing record payload length is %u ]\n",
                     (unsigned int) mbedtls_ssl_get_max_out_record_payload( &ssl ) );
 #endif
 
 #if defined(MBEDTLS_SSL_ALPN)
     if( opt.alpn_string != NULL )
     {
-        const char *alp = mbedtls_ssl_get_alpn_protocol( &ssl );
-        mbedtls_printf( "    [ Application Layer Protocol is %s ]\n",
-                alp ? alp : "(none)" );
+        /*const char *alp = mbedtls_ssl_get_alpn_protocol( &ssl );
+        mbedtls_dont_printf( "    [ Application Layer Protocol is %s ]\n",
+                alp ? alp : "(none)" );*/
     }
 #endif
 
@@ -2285,19 +2306,19 @@ PyObject * query(PyObject * self, PyObject * args)
                                          sizeof( eap_tls_keymaterial ) ) )
                                          != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_tls_prf returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_tls_prf returned -0x%x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
 
-        mbedtls_printf( "    EAP-TLS key material is:" );
+        mbedtls_dont_printf( "    EAP-TLS key material is:" );
         for( j = 0; j < sizeof( eap_tls_keymaterial ); j++ )
         {
             if( j % 8 == 0 )
-                mbedtls_printf("\n    ");
-            mbedtls_printf("%02x ", eap_tls_keymaterial[j] );
+                mbedtls_dont_printf("\n    ");
+            mbedtls_dont_printf("%02x ", eap_tls_keymaterial[j] );
         }
-        mbedtls_printf("\n");
+        mbedtls_dont_printf("\n");
 
         if( ( ret = mbedtls_ssl_tls_prf( eap_tls_keying.tls_prf_type, NULL, 0,
                                          eap_tls_label,
@@ -2306,19 +2327,19 @@ PyObject * query(PyObject * self, PyObject * args)
                                          eap_tls_iv,
                                          sizeof( eap_tls_iv ) ) ) != 0 )
          {
-             mbedtls_printf( " failed\n  ! mbedtls_ssl_tls_prf returned -0x%x\n\n",
+             mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_tls_prf returned -0x%x\n\n",
                              (unsigned int) -ret );
              goto exit;
          }
 
-        mbedtls_printf( "    EAP-TLS IV is:" );
+        mbedtls_dont_printf( "    EAP-TLS IV is:" );
         for( j = 0; j < sizeof( eap_tls_iv ); j++ )
         {
             if( j % 8 == 0 )
-                mbedtls_printf("\n    ");
-            mbedtls_printf("%02x ", eap_tls_iv[j] );
+                mbedtls_dont_printf("\n    ");
+            mbedtls_dont_printf("%02x ", eap_tls_iv[j] );
         }
-        mbedtls_printf("\n");
+        mbedtls_dont_printf("\n");
     }
 
 #if defined( MBEDTLS_SSL_DTLS_SRTP )
@@ -2331,7 +2352,7 @@ PyObject * query(PyObject * self, PyObject * args)
         if( dtls_srtp_negotiation_result.chosen_dtls_srtp_profile
                                 == MBEDTLS_TLS_SRTP_UNSET )
         {
-            mbedtls_printf( "    Unable to negotiate "
+            mbedtls_dont_printf( "    Unable to negotiate "
                             "the use of DTLS-SRTP\n" );
         }
         else
@@ -2346,50 +2367,50 @@ PyObject * query(PyObject * self, PyObject * args)
                                              sizeof( dtls_srtp_key_material ) ) )
                                              != 0 )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_tls_prf returned -0x%x\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_tls_prf returned -0x%x\n\n",
                                 (unsigned int) -ret );
                 goto exit;
             }
 
-            mbedtls_printf( "    DTLS-SRTP key material is:" );
+            mbedtls_dont_printf( "    DTLS-SRTP key material is:" );
             for( j = 0; j < sizeof( dtls_srtp_key_material ); j++ )
             {
                 if( j % 8 == 0 )
-                    mbedtls_printf( "\n    " );
-                mbedtls_printf( "%02x ", dtls_srtp_key_material[j] );
+                    mbedtls_dont_printf( "\n    " );
+                mbedtls_dont_printf( "%02x ", dtls_srtp_key_material[j] );
             }
-            mbedtls_printf( "\n" );
+            mbedtls_dont_printf( "\n" );
 
             /* produce a less readable output used to perform automatic checks
              * - compare client and server output
              * - interop test with openssl which client produces this kind of output
              */
-            mbedtls_printf( "    Keying material: " );
+            mbedtls_dont_printf( "    Keying material: " );
             for( j = 0; j < sizeof( dtls_srtp_key_material ); j++ )
             {
-                mbedtls_printf( "%02X", dtls_srtp_key_material[j] );
+                mbedtls_dont_printf( "%02X", dtls_srtp_key_material[j] );
             }
-            mbedtls_printf( "\n" );
+            mbedtls_dont_printf( "\n" );
 
             if ( dtls_srtp_negotiation_result.mki_len > 0 )
             {
-                mbedtls_printf( "    DTLS-SRTP mki value: " );
+                mbedtls_dont_printf( "    DTLS-SRTP mki value: " );
                 for( j = 0; j < dtls_srtp_negotiation_result.mki_len; j++ )
                 {
-                    mbedtls_printf( "%02X", dtls_srtp_negotiation_result.mki_value[j] );
+                    mbedtls_dont_printf( "%02X", dtls_srtp_negotiation_result.mki_value[j] );
                 }
             }
             else
             {
-                mbedtls_printf( "    DTLS-SRTP no mki value negotiated" );
+                mbedtls_dont_printf( "    DTLS-SRTP no mki value negotiated" );
             }
-            mbedtls_printf( "\n" );
+            mbedtls_dont_printf( "\n" );
         }
     }
 #endif /* MBEDTLS_SSL_DTLS_SRTP */
     if( opt.reconnect != 0 )
     {
-        mbedtls_printf("  . Saving session for reuse..." );
+        mbedtls_dont_printf("  . Saving session for reuse..." );
         fflush( stdout );
 
         if( opt.reco_mode == 1 )
@@ -2408,7 +2429,7 @@ PyObject * query(PyObject * self, PyObject * args)
             ret = mbedtls_ssl_get_session( &ssl, &exported_session );
             if( ret != 0 )
             {
-                mbedtls_printf(
+                mbedtls_dont_printf(
                     "failed\n  ! mbedtls_ssl_get_session() returned -%#02x\n",
                     (unsigned) -ret );
                 goto exit;
@@ -2419,7 +2440,7 @@ PyObject * query(PyObject * self, PyObject * args)
             session_data = mbedtls_calloc( 1, session_data_len );
             if( session_data == NULL )
             {
-                mbedtls_printf( " failed\n  ! alloc %u bytes for session data\n",
+                mbedtls_dont_printf( " failed\n  ! alloc %u bytes for session data\n",
                                 (unsigned) session_data_len );
                 mbedtls_ssl_session_free( &exported_session );
                 ret = MBEDTLS_ERR_SSL_ALLOC_FAILED;
@@ -2431,7 +2452,7 @@ PyObject * query(PyObject * self, PyObject * args)
                                                   session_data, session_data_len,
                                                   &session_data_len ) ) != 0 )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_session_saved returned -0x%04x\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_session_saved returned -0x%04x\n\n",
                                 (unsigned int) -ret );
                 mbedtls_ssl_session_free( &exported_session );
                 goto exit;
@@ -2443,17 +2464,17 @@ PyObject * query(PyObject * self, PyObject * args)
         {
             if( ( ret = mbedtls_ssl_get_session( &ssl, &saved_session ) ) != 0 )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_get_session returned -0x%x\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_get_session returned -0x%x\n\n",
                                 (unsigned int) -ret );
                 goto exit;
             }
         }
 
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
 
         if( opt.reco_mode == 1 )
         {
-            mbedtls_printf( "    [ Saved %u bytes of session data]\n",
+            mbedtls_dont_printf( "    [ Saved %u bytes of session data]\n",
                             (unsigned) session_data_len );
         }
     }
@@ -2462,24 +2483,24 @@ PyObject * query(PyObject * self, PyObject * args)
     /*
      * 5. Verify the server certificate
      */
-    mbedtls_printf( "  . Verifying peer X.509 certificate..." );
+    mbedtls_dont_printf( "  . Verifying peer X.509 certificate..." );
 
     if( ( flags = mbedtls_ssl_get_verify_result( &ssl ) ) != 0 )
     {
         char vrfy_buf[512];
-        mbedtls_printf( " failed\n" );
+        mbedtls_dont_printf( " failed\n" );
 
         x509_crt_verify_info( vrfy_buf, sizeof( vrfy_buf ),
                                       "  ! ", flags );
 
-        mbedtls_printf( "%s\n", vrfy_buf );
+        mbedtls_dont_printf( "%s\n", vrfy_buf );
     }
     else
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
 
 #if !defined(MBEDTLS_X509_REMOVE_INFO)
-    mbedtls_printf( "  . Peer certificate information    ...\n" );
-    mbedtls_printf( "%s\n", peer_crt_info );
+    mbedtls_dont_printf( "  . Peer certificate information    ...\n" );
+    mbedtls_dont_printf( "%s\n", peer_crt_info );
 #endif /* !MBEDTLS_X509_REMOVE_INFO */
 #endif /* MBEDTLS_X509_CRT_PARSE_C */
 
@@ -2494,7 +2515,7 @@ PyObject * query(PyObject * self, PyObject * args)
                                          cid_renego,
                                          cid_renego_len ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_set_cid returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_set_cid returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -2508,7 +2529,7 @@ PyObject * query(PyObject * self, PyObject * args)
          * Perform renegotiation (this must be done when the server is waiting
          * for input from our side).
          */
-        mbedtls_printf( "  . Performing renegotiation..." );
+        mbedtls_dont_printf( "  . Performing renegotiation..." );
         fflush( stdout );
         while( ( ret = mbedtls_ssl_renegotiate( &ssl ) ) != 0 )
         {
@@ -2516,7 +2537,7 @@ PyObject * query(PyObject * self, PyObject * args)
                 ret != MBEDTLS_ERR_SSL_WANT_WRITE &&
                 ret != MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_renegotiate returned %d\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_renegotiate returned %d\n\n",
                                 ret );
                 goto exit;
             }
@@ -2537,7 +2558,7 @@ PyObject * query(PyObject * self, PyObject * args)
             }
 
         }
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
     }
 #endif /* MBEDTLS_SSL_RENEGOTIATION */
 
@@ -2552,7 +2573,7 @@ PyObject * query(PyObject * self, PyObject * args)
      */
     retry_left = opt.max_resend;
 send_request:
-    mbedtls_printf( "  > Write to server:" );
+    mbedtls_dont_printf( "  > Write to server:" );
     fflush( stdout );
 
     len = mbedtls_snprintf( (char *) buf, sizeof( buf ) - 1, GET_REQUEST,
@@ -2595,7 +2616,7 @@ send_request:
                     ret != MBEDTLS_ERR_SSL_WANT_WRITE &&
                     ret != MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS )
                 {
-                    mbedtls_printf( " failed\n  ! mbedtls_ssl_write returned -0x%x\n\n",
+                    mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_write returned -0x%x\n\n",
                                     (unsigned int) -ret );
                     goto exit;
                 }
@@ -2644,7 +2665,7 @@ send_request:
 
         if( ret < 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_write returned %d\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_write returned %d\n\n",
                             ret );
             goto exit;
         }
@@ -2654,13 +2675,13 @@ send_request:
 
         if( written < len )
         {
-            mbedtls_printf( " warning\n  ! request didn't fit into single datagram and "
+            mbedtls_dont_printf( " warning\n  ! request didn't fit into single datagram and "
                             "was truncated to size %u", (unsigned) written );
         }
     }
 
     buf[written] = '\0';
-    mbedtls_printf( " %d bytes written in %d fragments\n\n%s\n",
+    mbedtls_dont_printf( " %d bytes written in %d fragments\n\n%s\n",
                     written, frags, (char *) buf );
 
     /* Send a non-empty request if request_size == 0 */
@@ -2673,7 +2694,7 @@ send_request:
     /*
      * 7. Read the HTTP response
      */
-    mbedtls_printf( "  < Read from server:" );
+    mbedtls_dont_printf( "  < Read from server:" );
     fflush( stdout );
 
     /*
@@ -2712,18 +2733,18 @@ send_request:
                 switch( ret )
                 {
                     case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
-                        mbedtls_printf( " connection was closed gracefully\n" );
+                        mbedtls_dont_printf( " connection was closed gracefully\n" );
                         ret = 0;
                         goto close_notify;
 
                     case 0:
                     case MBEDTLS_ERR_NET_CONN_RESET:
-                        mbedtls_printf( " connection was reset by peer\n" );
+                        mbedtls_dont_printf( " connection was reset by peer\n" );
                         ret = 0;
                         goto reconnect;
 
                     default:
-                        mbedtls_printf( " mbedtls_ssl_read returned -0x%x\n",
+                        mbedtls_dont_printf( " mbedtls_ssl_read returned -0x%x\n",
                                         (unsigned int) -ret );
                         goto exit;
                 }
@@ -2731,7 +2752,7 @@ send_request:
 
             len = ret;
             buf[len] = '\0';
-            mbedtls_printf( " %d bytes read\n\n%s", len, (char *) buf );
+            mbedtls_dont_printf( " %d bytes read\n\n%s", len, (char *) buf );
 
             /* End of message should be detected according to the syntax of the
              * application protocol (eg HTTP), just use a dummy test here. */
@@ -2777,25 +2798,25 @@ send_request:
             switch( ret )
             {
                 case MBEDTLS_ERR_SSL_TIMEOUT:
-                    mbedtls_printf( " timeout\n" );
+                    mbedtls_dont_printf( " timeout\n" );
                     if( retry_left-- > 0 )
                         goto send_request;
                     goto exit;
 
                 case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
-                    mbedtls_printf( " connection was closed gracefully\n" );
+                    mbedtls_dont_printf( " connection was closed gracefully\n" );
                     ret = 0;
                     goto close_notify;
 
                 default:
-                    mbedtls_printf( " mbedtls_ssl_read returned -0x%x\n", (unsigned int) -ret );
+                    mbedtls_dont_printf( " mbedtls_ssl_read returned -0x%x\n", (unsigned int) -ret );
                     goto exit;
             }
         }
 
         len = ret;
         buf[len] = '\0';
-        mbedtls_printf( " %d bytes read\n\n%s", len, (char *) buf );
+        mbedtls_dont_printf( " %d bytes read\n\n%s", len, (char *) buf );
         ret = 0;
     }
 
@@ -2806,7 +2827,7 @@ send_request:
     {
         opt.reconnect_hard = 0;
 
-        mbedtls_printf( "  . Restarting connection from same port..." );
+        mbedtls_dont_printf( "  . Restarting connection from same port..." );
         fflush( stdout );
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
@@ -2815,7 +2836,7 @@ send_request:
 
         if( ( ret = mbedtls_ssl_session_reset( &ssl ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_session_reset returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_session_reset returned -0x%x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
@@ -2826,7 +2847,7 @@ send_request:
                 ret != MBEDTLS_ERR_SSL_WANT_WRITE &&
                 ret != MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n",
                                 (unsigned int) -ret );
                 goto exit;
             }
@@ -2842,7 +2863,7 @@ send_request:
             }
         }
 
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
 
         goto send_request;
     }
@@ -2855,12 +2876,12 @@ send_request:
     {
         size_t buf_len;
 
-        mbedtls_printf( "  . Serializing live connection..." );
+        mbedtls_dont_printf( "  . Serializing live connection..." );
 
         ret = mbedtls_ssl_context_save( &ssl, NULL, 0, &buf_len );
         if( ret != MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_context_save returned "
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_context_save returned "
                             "-0x%x\n\n", (unsigned int) -ret );
 
             goto exit;
@@ -2868,7 +2889,7 @@ send_request:
 
         if( ( context_buf = mbedtls_calloc( 1, buf_len ) ) == NULL )
         {
-            mbedtls_printf( " failed\n  ! Couldn't allocate buffer for "
+            mbedtls_dont_printf( " failed\n  ! Couldn't allocate buffer for "
                             "serialized context" );
 
             goto exit;
@@ -2878,13 +2899,13 @@ send_request:
         if( ( ret = mbedtls_ssl_context_save( &ssl, context_buf,
                                               buf_len, &buf_len ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_context_save returned "
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_context_save returned "
                             "-0x%x\n\n", (unsigned int) -ret );
 
             goto exit;
         }
 
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
 
         /* Save serialized context to the 'opt.context_file' as a base64 code */
         if( 0 < strlen( opt.context_file ) )
@@ -2893,13 +2914,13 @@ send_request:
             uint8_t *b64_buf;
             size_t b64_len;
 
-            mbedtls_printf( "  . Save serialized context to a file... " );
+            mbedtls_dont_printf( "  . Save serialized context to a file... " );
 
             mbedtls_base64_encode( NULL, 0, &b64_len, context_buf, buf_len );
 
             if( ( b64_buf = mbedtls_calloc( 1, b64_len ) ) == NULL )
             {
-                mbedtls_printf( "failed\n  ! Couldn't allocate buffer for "
+                mbedtls_dont_printf( "failed\n  ! Couldn't allocate buffer for "
                                 "the base64 code\n" );
                 goto exit;
             }
@@ -2907,7 +2928,7 @@ send_request:
             if( ( ret = mbedtls_base64_encode( b64_buf, b64_len, &b64_len,
                                                context_buf, buf_len ) ) != 0 )
             {
-                mbedtls_printf( "failed\n  ! mbedtls_base64_encode returned "
+                mbedtls_dont_printf( "failed\n  ! mbedtls_base64_encode returned "
                             "-0x%x\n", (unsigned int) -ret );
                 mbedtls_free( b64_buf );
                 goto exit;
@@ -2915,7 +2936,7 @@ send_request:
 
             if( ( b64_file = fopen( opt.context_file, "w" ) ) == NULL )
             {
-                mbedtls_printf( "failed\n  ! Cannot open '%s' for writing.\n",
+                mbedtls_dont_printf( "failed\n  ! Cannot open '%s' for writing.\n",
                                 opt.context_file );
                 mbedtls_free( b64_buf );
                 goto exit;
@@ -2923,7 +2944,7 @@ send_request:
 
             if( b64_len != fwrite( b64_buf, 1, b64_len, b64_file ) )
             {
-                mbedtls_printf( "failed\n  ! fwrite(%ld bytes) failed\n",
+                mbedtls_dont_printf( "failed\n  ! fwrite(%ld bytes) failed\n",
                                 (long) b64_len );
                 mbedtls_free( b64_buf );
                 fclose( b64_file );
@@ -2933,18 +2954,18 @@ send_request:
             mbedtls_free( b64_buf );
             fclose( b64_file );
 
-            mbedtls_printf( "ok\n" );
+            mbedtls_dont_printf( "ok\n" );
         }
 
         if( opt.serialize == 1 )
         {
             /* nothing to do here, done by context_save() already */
-            mbedtls_printf( "  . Context has been reset... ok\n" );
+            mbedtls_dont_printf( "  . Context has been reset... ok\n" );
         }
 
         if( opt.serialize == 2 )
         {
-            mbedtls_printf( "  . Freeing and reinitializing context..." );
+            mbedtls_dont_printf( "  . Freeing and reinitializing context..." );
 
             mbedtls_ssl_free( &ssl );
 
@@ -2952,7 +2973,7 @@ send_request:
 
             if( ( ret = mbedtls_ssl_setup( &ssl, &conf ) ) != 0 )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_setup returned "
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_setup returned "
                                 "-0x%x\n\n", (unsigned int) -ret );
                 goto exit;
             }
@@ -2971,15 +2992,15 @@ send_request:
                                           mbedtls_timing_get_delay );
 #endif /* MBEDTLS_TIMING_C */
 
-            mbedtls_printf( " ok\n" );
+            mbedtls_dont_printf( " ok\n" );
         }
 
-        mbedtls_printf( "  . Deserializing connection..." );
+        mbedtls_dont_printf( "  . Deserializing connection..." );
 
         if( ( ret = mbedtls_ssl_context_load( &ssl, context_buf,
                                               buf_len ) ) != 0 )
         {
-            mbedtls_printf( "failed\n  ! mbedtls_ssl_context_load returned "
+            mbedtls_dont_printf( "failed\n  ! mbedtls_ssl_context_load returned "
                             "-0x%x\n\n", (unsigned int) -ret );
 
             goto exit;
@@ -2989,7 +3010,7 @@ send_request:
         context_buf = NULL;
         context_buf_len = 0;
 
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
     }
 #endif /* MBEDTLS_SSL_CONTEXT_SERIALIZATION */
 
@@ -3003,7 +3024,7 @@ send_request:
      * 8. Done, cleanly close the connection
      */
 close_notify:
-    mbedtls_printf( "  . Closing the connection..." );
+    mbedtls_dont_printf( "  . Closing the connection..." );
     fflush( stdout );
 
     /*
@@ -3026,7 +3047,7 @@ close_notify:
         ret = 0;
     }
 
-    mbedtls_printf( " done\n" );
+    mbedtls_dont_printf( " done\n" );
 
     /*
      * 9. Reconnect?
@@ -3043,7 +3064,7 @@ reconnect:
             mbedtls_net_usleep( 1000000 * opt.reco_delay );
 #endif
 
-        mbedtls_printf( "  . Reconnecting with saved session..." );
+        mbedtls_dont_printf( "  . Reconnecting with saved session..." );
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
         memset( peer_crt_info, 0, sizeof( peer_crt_info ) );
@@ -3051,7 +3072,7 @@ reconnect:
 
         if( ( ret = mbedtls_ssl_session_reset( &ssl ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_session_reset returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_session_reset returned -0x%x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
@@ -3062,7 +3083,7 @@ reconnect:
                                                   session_data,
                                                   session_data_len ) ) != 0 )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_session_load returned -0x%x\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_session_load returned -0x%x\n\n",
                                 (unsigned int) -ret );
                 goto exit;
             }
@@ -3070,7 +3091,7 @@ reconnect:
 
         if( ( ret = mbedtls_ssl_set_session( &ssl, &saved_session ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_ssl_set_session returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_set_session returned -0x%x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
@@ -3080,7 +3101,7 @@ reconnect:
                         opt.transport == MBEDTLS_SSL_TRANSPORT_STREAM ?
                         MBEDTLS_NET_PROTO_TCP : MBEDTLS_NET_PROTO_UDP ) ) != 0 )
         {
-            mbedtls_printf( " failed\n  ! mbedtls_net_connect returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! mbedtls_net_connect returned -0x%x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
@@ -3091,7 +3112,7 @@ reconnect:
             ret = mbedtls_net_set_block( &server_fd );
         if( ret != 0 )
         {
-            mbedtls_printf( " failed\n  ! net_set_(non)block() returned -0x%x\n\n",
+            mbedtls_dont_printf( " failed\n  ! net_set_(non)block() returned -0x%x\n\n",
                             (unsigned int) -ret );
             goto exit;
         }
@@ -3102,13 +3123,13 @@ reconnect:
                 ret != MBEDTLS_ERR_SSL_WANT_WRITE &&
                 ret != MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS )
             {
-                mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n",
+                mbedtls_dont_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n",
                                 (unsigned int) -ret );
                 goto exit;
             }
         }
 
-        mbedtls_printf( " ok\n" );
+        mbedtls_dont_printf( " ok\n" );
 
         goto send_request;
     }
@@ -3122,7 +3143,7 @@ exit:
     {
         char error_buf[100];
         mbedtls_strerror( ret, error_buf, 100 );
-        mbedtls_printf("Last error was: -0x%X - %s\n\n", (unsigned int) -ret, error_buf );
+        mbedtls_dont_printf("Last error was: -0x%X - %s\n\n", (unsigned int) -ret, error_buf );
 	if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
 	    real_ret = 1;
 	}
@@ -3168,7 +3189,7 @@ exit:
         if( ( status != PSA_SUCCESS ) &&
             ( opt.query_config_mode == DFL_QUERY_CONFIG_MODE ) )
         {
-            mbedtls_printf( "Failed to destroy key slot %u - error was %d",
+            mbedtls_dont_printf( "Failed to destroy key slot %u - error was %d",
                             (unsigned) MBEDTLS_SVC_KEY_ID_GET_KEY_ID( slot ),
                             (int) status );
             if( ret == 0 )
@@ -3184,7 +3205,7 @@ exit:
     {
         if( ret == 0 )
             ret = 1;
-        mbedtls_printf( "PSA memory leak detected: %s\n",  message);
+        mbedtls_dont_printf( "PSA memory leak detected: %s\n",  message);
     }
 #endif /* MBEDTLS_USE_PSA_CRYPTO || MBEDTLS_SSL_PROTO_TLS1_3 */
 
@@ -3202,7 +3223,7 @@ exit:
     {
         if( ret == 0 )
             ret = 1;
-        mbedtls_printf( "Test hooks detected errors.\n" );
+        mbedtls_dont_printf( "Test hooks detected errors.\n" );
     }
     test_hooks_free( );
 #endif /* MBEDTLS_TEST_HOOKS */
@@ -3217,7 +3238,7 @@ exit:
 #if defined(_WIN32)
     if( opt.query_config_mode == DFL_QUERY_CONFIG_MODE )
     {
-        mbedtls_printf( "  + Press Enter to exit this program.\n" );
+        mbedtls_dont_printf( "  + Press Enter to exit this program.\n" );
         fflush( stdout ); getchar();
     }
 #endif
