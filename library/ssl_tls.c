@@ -2618,8 +2618,8 @@ int mbedtls_ssl_get_session( const mbedtls_ssl_context *ssl,
      * Check whether we have already exported the current session,
      * and fail if so.
      */
-    if( ssl->session->exported == 1 )
-        return( MBEDTLS_ERR_SSL_FEATURE_UNAVAILABLE );
+    /*if( ssl->session->exported == 1 )
+        return( MBEDTLS_ERR_SSL_FEATURE_UNAVAILABLE );*/
 
     ret = mbedtls_ssl_session_copy( dst, ssl->session );
     if( ret != 0 )
