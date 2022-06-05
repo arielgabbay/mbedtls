@@ -21,6 +21,8 @@
 
 #include "ssl_test_lib.h"
 
+#include <sys/time.h>
+
 #if defined(MBEDTLS_SSL_TEST_IMPOSSIBLE)
 int main( void )
 {
@@ -1330,6 +1332,7 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
 
 int main( int argc, char *argv[] )
 {
+    struct timeval tv, prevtv, difftv;
     int ret = 0, len, written, frags, exchanges_left;
     int query_config_ret = 0;
     io_ctx_t io_ctx;
@@ -3238,6 +3241,12 @@ reset:
     mbedtls_printf( "  . Waiting for a remote connection ..." );
     fflush( stdout );
 
+    gettimeofday(&tv, NULL);
+    timersub(&tv, &prevtv, &difftv);
+    prevtv = tv;
+    mbedtls_printf(" %lu.%lu ", difftv.tv_sec, difftv.tv_usec);
+    fflush(stdout);
+
     if( ( ret = mbedtls_net_accept( &listen_fd, &client_fd,
                     client_ip, sizeof( client_ip ), &cliip_len ) ) != 0 )
     {
@@ -3255,6 +3264,11 @@ reset:
         mbedtls_printf( " failed\n  ! mbedtls_net_accept returned -0x%x\n\n", (unsigned int) -ret );
         goto exit;
     }
+    gettimeofday(&tv, NULL);
+    timersub(&tv, &prevtv, &difftv);
+    prevtv = tv;
+    mbedtls_printf(" %lu.%lu ", difftv.tv_sec, difftv.tv_usec);
+    fflush(stdout);
 
     if( opt.nbio > 0 )
         ret = mbedtls_net_set_nonblock( &client_fd );
@@ -3266,6 +3280,11 @@ reset:
         goto exit;
     }
 
+    gettimeofday(&tv, NULL);
+    timersub(&tv, &prevtv, &difftv);
+    prevtv = tv;
+    mbedtls_printf(" %lu.%lu ", difftv.tv_sec, difftv.tv_usec);
+    fflush(stdout);
     mbedtls_ssl_conf_read_timeout( &conf, opt.read_timeout );
 
 #if defined(MBEDTLS_SSL_DTLS_HELLO_VERIFY)
@@ -3294,7 +3313,11 @@ reset:
     }
 #endif
 
-    mbedtls_printf( " ok\n" );
+    gettimeofday(&tv, NULL);
+    timersub(&tv, &prevtv, &difftv);
+    prevtv = tv;
+
+    mbedtls_printf( " ok %lu.%lu\n", difftv.tv_sec, difftv.tv_usec);
 
     /*
      * 4. Handshake
@@ -3338,7 +3361,12 @@ handshake:
     }
     else if( ret != 0 )
     {
-        mbedtls_printf( " failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", (unsigned int) -ret );
+
+        gettimeofday(&tv, NULL);
+	timersub(&tv, &prevtv, &difftv);
+	prevtv = tv;
+
+        mbedtls_printf( " failed %lu.%lu \n  ! mbedtls_ssl_handshake returned -0x%x\n\n", difftv.tv_sec, difftv.tv_usec, (unsigned int) -ret );
 
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
         if( ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED )
@@ -3357,7 +3385,8 @@ handshake:
             /* Injected error only the first time round, to test reset */
             ssl_async_keys.inject_error = SSL_ASYNC_INJECT_ERROR_NONE;
 #endif
-        goto reset;
+        //mbedtls_ssl_session_reset( &ssl );
+        goto handshake;  // RECON
     }
     else /* ret == 0 */
     {
