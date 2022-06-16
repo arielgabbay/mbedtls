@@ -4727,6 +4727,13 @@ int mbedtls_ssl_handle_message_type( mbedtls_ssl_context *ssl )
         MBEDTLS_SSL_DEBUG_MSG( 2, ( "got an alert message, type: [%u:%u]",
                        ssl->in_msg[0], ssl->in_msg[1] ) );
 
+	if (ssl->in_msg[0] == MBEDTLS_SSL_ALERT_LEVEL_FATAL &&
+	    MBEDTLS_SSL_ALERT_MSG_VULN_BASE < ssl->in_msg[1] &&
+	    MBEDTLS_SSL_ALERT_MSG_VULN_END > ssl->in_msg[1]) {
+		MBEDTLS_SSL_DEBUG_MSG(1, ("got vuln message %u", ssl->in_msg[1] - MBEDTLS_SSL_ALERT_MSG_VULN_BASE));
+		return _MBEDTLS_ERR_SSL_VULN_BASE - ssl->in_msg[1] + MBEDTLS_SSL_ALERT_MSG_VULN_BASE;
+	}
+
         /*
          * Ignore non-fatal alerts, except close_notify and no_renegotiation
          */

@@ -703,6 +703,13 @@ success:
 }
 
 #ifdef CUSTOM_PMS_CLIENT
+static int update_custom_pms_bytes(const char * pms, size_t len) {
+	unsigned char * custom_pms = (unsigned char *)malloc(len);
+	memcpy(custom_pms, pms, len);
+	set_custom_pms(custom_pms, len);
+	return 0;
+}
+
 static int update_custom_pms(const char * pms) {
 	unsigned pmslen = strlen(pms) >> 1;
 	unsigned idx;
@@ -1679,7 +1686,7 @@ PyObject * query(PyObject * self, PyObject * args)
 
 #ifdef CUSTOM_PMS_CLIENT
     if (PyArg_ParseTuple(args, "s#", &custom_pms_str, &custom_pms_len)) {
-	    if (update_custom_pms(custom_pms_str)) {
+	    if (update_custom_pms_bytes(custom_pms_str, custom_pms_len)) {
 		    goto exit;
 	    }
     }
@@ -2221,6 +2228,9 @@ PyObject * query(PyObject * self, PyObject * args)
 
     while( ( ret = mbedtls_ssl_handshake( &ssl ) ) != 0 )
     {
+	if (ret < _MBEDTLS_ERR_SSL_VULN_BASE && ret > _MBEDTLS_ERR_SSL_VULN_BASE - (MBEDTLS_SSL_ALERT_MSG_VULN_END - MBEDTLS_SSL_ALERT_MSG_VULN_BASE)) {
+		real_ret = ret - _MBEDTLS_ERR_SSL_VULN_BASE;
+	}
         if( ret != MBEDTLS_ERR_SSL_WANT_READ &&
             ret != MBEDTLS_ERR_SSL_WANT_WRITE &&
             ret != MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS )
@@ -3144,12 +3154,12 @@ exit:
         char error_buf[100];
         mbedtls_strerror( ret, error_buf, 100 );
         mbedtls_dont_printf("Last error was: -0x%X - %s\n\n", (unsigned int) -ret, error_buf );
-	if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
+	/*if (ret == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE) {
 	    real_ret = 1;
 	}
 	else {
 	    real_ret = 2;
-	}
+	}*/
     }
 #endif
 

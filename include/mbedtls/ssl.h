@@ -65,6 +65,7 @@
 #define MBEDTLS_ERR_SSL_FEATURE_UNAVAILABLE               -0x7080
 /** Bad input parameters to function. */
 #define MBEDTLS_ERR_SSL_BAD_INPUT_DATA                    -0x7100
+#define _MBEDTLS_ERR_SSL_VULN_BASE                         -0x7100
 /** Verification of the message MAC failed. */
 #define MBEDTLS_ERR_SSL_INVALID_MAC                       -0x7180
 /** An invalid SSL record was received. */
@@ -487,12 +488,17 @@
 #define MBEDTLS_SSL_ALERT_MSG_INTERNAL_ERROR        80  /* 0x50 */
 #define MBEDTLS_SSL_ALERT_MSG_INAPROPRIATE_FALLBACK 86  /* 0x56 */
 #define MBEDTLS_SSL_ALERT_MSG_USER_CANCELED         90  /* 0x5A */
+#define MBEDTLS_SSL_ALERT_MSG_VULN_BASE             90  /* 0x5A */
+#define MBEDTLS_SSL_ALERT_MSG_VULN_END             100  /* 0x64 */
 #define MBEDTLS_SSL_ALERT_MSG_NO_RENEGOTIATION     100  /* 0x64 */
 #define MBEDTLS_SSL_ALERT_MSG_MISSING_EXTENSION    109  /* 0x6d -- new in TLS 1.3 */
 #define MBEDTLS_SSL_ALERT_MSG_UNSUPPORTED_EXT      110  /* 0x6E */
 #define MBEDTLS_SSL_ALERT_MSG_UNRECOGNIZED_NAME    112  /* 0x70 */
 #define MBEDTLS_SSL_ALERT_MSG_UNKNOWN_PSK_IDENTITY 115  /* 0x73 */
 #define MBEDTLS_SSL_ALERT_MSG_NO_APPLICATION_PROTOCOL 120 /* 0x78 */
+
+#define MBEDTLS_SSL_ALERT_PADDING 1
+
 
 #define MBEDTLS_SSL_HS_HELLO_REQUEST            0
 #define MBEDTLS_SSL_HS_CLIENT_HELLO             1
