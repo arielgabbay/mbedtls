@@ -21,8 +21,8 @@
 
 #include "ssl_test_lib.h"
 
-//#define mbedtls_dont_printf(...) do {} while (0)
-#define mbedtls_dont_printf mbedtls_printf
+#define mbedtls_dont_printf(...) do {} while (0)
+//#define mbedtls_dont_printf mbedtls_printf
 
 #if defined(MBEDTLS_SSL_TEST_IMPOSSIBLE)
 int main( void )
@@ -3308,7 +3308,7 @@ handshake:
 
     while( ( ret = mbedtls_ssl_handshake( &ssl ) ) != 0 )
     {
-        mbedtls_printf("ret %d\n", ret);
+        //mbedtls_printf("ret %d\n", ret);
 #if defined(MBEDTLS_SSL_ASYNC_PRIVATE)
         if( ret == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS &&
             ssl_async_keys.inject_error == SSL_ASYNC_INJECT_ERROR_CANCEL )
