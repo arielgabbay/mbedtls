@@ -3717,6 +3717,11 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
                                         MBEDTLS_SSL_ALERT_MSG_VULN_BASE + MBEDTLS_SSL_ALERT_PADDING );
 	    return MBEDTLS_ERR_SSL_DECODE_ERROR;
     }
+    else {
+        mbedtls_ssl_send_alert_message(ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
+            MBEDTLS_SSL_ALERT_MSG_VULN_BASE + MBEDTLS_SSL_ALERT_PADDING_OK);
+        return MBEDTLS_ERR_SSL_DECODE_ERROR;
+    }
 
     mbedtls_ssl_write_version( ver, ssl->conf->transport,
                                ssl->session_negotiate->tls_version );
