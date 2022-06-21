@@ -896,7 +896,15 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     if (ret == MBEDTLS_ERR_RSA_INVALID_PADDING) {
         return MBEDTLS_ERR_RSA_PADDING_ORACLE;
     }
-    else if (ret) {
+    else if (ret == MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE) {
+        /* If output if too large, we return this error; the oracle will indicate 1
+           (valid padding), as padding was already checked and the only fault in the
+           unpadding was the check that the payload is smaller than the size of the
+           PMS. A LOT of queries that pass preceding padding checksfall on this
+           condition (the vast majority), so this makes attacks much faster.
+           In any case, without this condition the check is more "constant-time"
+           but still returns an error that leads the oracle to indicate that the
+           padding was valid. */
         return ret;
     }
 
@@ -907,7 +915,6 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
      * avoid leaking the padding validity through overall timing or
      * through memory or cache access patterns. */
     bad = mbedtls_ct_uint_mask( bad | output_too_large );
-    // NOT_CONSTANT_TIME;  /* already checked above. */
     for( i = 11; i < ilen; i++ )
         input[i] &= ~bad;
 
