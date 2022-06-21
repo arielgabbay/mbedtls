@@ -45,6 +45,8 @@
 #define MBEDTLS_ERR_RSA_BAD_INPUT_DATA                    -0x4080
 /** Input data contains invalid padding and is rejected. */
 #define MBEDTLS_ERR_RSA_INVALID_PADDING                   -0x4100
+/** Input data contains invalid padding and is rejected and provides an oracle. */
+#define MBEDTLS_ERR_RSA_PADDING_ORACLE                    -0x4101
 /** Something failed during generation of a key. */
 #define MBEDTLS_ERR_RSA_KEY_GEN_FAILED                    -0x4180
 /** Key failed to pass the validity check of the library. */

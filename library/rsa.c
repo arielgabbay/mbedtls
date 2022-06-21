@@ -1317,6 +1317,13 @@ int mbedtls_rsa_pkcs1_encrypt( mbedtls_rsa_context *ctx,
 }
 
 #if defined(MBEDTLS_PKCS1_V21)
+
+#define NOT_CONSTANT_TIME do { \
+    if (bad) { \
+        return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
+    } \
+} while (0)
+
 /*
  * Implementation of the PKCS#1 v2.1 RSAES-OAEP-DECRYPT function
  */
@@ -1347,23 +1354,27 @@ int mbedtls_rsa_rsaes_oaep_decrypt( mbedtls_rsa_context *ctx,
     /*
      * Parameters sanity checks
      */
-    if( ctx->padding != MBEDTLS_RSA_PKCS_V21 )
+    if( ctx->padding != MBEDTLS_RSA_PKCS_V21 ) {
         return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+    }
 
     ilen = ctx->len;
 
-    if( ilen < 16 || ilen > sizeof( buf ) )
+    if( ilen < 16 || ilen > sizeof( buf ) ) {
         return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+    }
 
     md_info = mbedtls_md_info_from_type( (mbedtls_md_type_t) ctx->hash_id );
-    if( md_info == NULL )
+    if( md_info == NULL ) {
         return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+    }
 
     hlen = mbedtls_md_get_size( md_info );
 
     // checking for integer underflow
-    if( 2 * hlen + 2 > ilen )
+    if( 2 * hlen + 2 > ilen ) {
         return( MBEDTLS_ERR_RSA_BAD_INPUT_DATA );
+    }
 
     /*
      * RSA operation
@@ -1407,6 +1418,7 @@ int mbedtls_rsa_rsaes_oaep_decrypt( mbedtls_rsa_context *ctx,
     bad = 0;
 
     bad |= *p++; /* First byte must be 0 */
+    NOT_CONSTANT_TIME;
 
     p += hlen; /* Skip seed */
 

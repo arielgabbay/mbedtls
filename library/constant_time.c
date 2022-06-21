@@ -802,7 +802,7 @@ int mbedtls_mpi_lt_mpi_ct( const mbedtls_mpi *X,
 
 #define NOT_CONSTANT_TIME do { \
 	if (bad) { \
-		return -MBEDTLS_ERR_RSA_INVALID_PADDING; \
+		return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
 	} \
 } while (0)
 

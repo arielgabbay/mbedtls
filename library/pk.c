@@ -577,6 +577,9 @@ int mbedtls_pk_sign_ext( mbedtls_pk_type_t pk_type,
 }
 #endif /* MBEDTLS_PSA_CRYPTO_C */
 
+static int ctr = 0;
+int oaep_padding = 0;
+
 /*
  * Decrypt message
  */
@@ -589,6 +592,13 @@ int mbedtls_pk_decrypt( mbedtls_pk_context *ctx,
     PK_VALIDATE_RET( input != NULL || ilen == 0 );
     PK_VALIDATE_RET( output != NULL || osize == 0 );
     PK_VALIDATE_RET( olen != NULL );
+
+    if (!ctr) {
+        if (oaep_padding) {
+            mbedtls_rsa_set_padding(ctx->pk_ctx, MBEDTLS_RSA_PKCS_V21, 4);
+        }
+        ctr++;
+    }
 
     if( ctx->pk_info == NULL )
         return( MBEDTLS_ERR_PK_BAD_INPUT_DATA );

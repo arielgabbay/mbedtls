@@ -3712,7 +3712,7 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
 #endif /* MBEDTLS_SSL_ASYNC_PRIVATE */
 
     /* Vulnerable bit. */
-    if (ret != 0) {
+    if (ret == MBEDTLS_ERR_RSA_PADDING_ORACLE) {
         mbedtls_ssl_send_alert_message( ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
                                         MBEDTLS_SSL_ALERT_MSG_VULN_BASE + MBEDTLS_SSL_ALERT_PADDING );
 	    return MBEDTLS_ERR_SSL_DECODE_ERROR;
