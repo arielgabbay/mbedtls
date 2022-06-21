@@ -850,10 +850,10 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     for( i = 2; i < ilen; i++ )
     {
         pad_done  |= ((input[i] | (unsigned char)-input[i]) >> 7) ^ 1;
-	/* More non-constant-time checks added. */
-	if (pad_done) {
-		break;
-	}
+	    /* More non-constant-time checks added. */
+	    if (pad_done) {
+	   	   break;
+	    }
         pad_count += ((pad_done | (unsigned char)-pad_done) >> 7) ^ 1;
     }
 
@@ -893,8 +893,11 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
                                         - MBEDTLS_ERR_RSA_OUTPUT_TOO_LARGE,
                                         0 ) );
     /* More non-constant-time stuff. */
-    if (ret) {
-	    return ret;
+    if (ret == MBEDTLS_ERR_RSA_INVALID_PADDING) {
+        return MBEDTLS_ERR_RSA_PADDING_ORACLE;
+    }
+    else if (ret) {
+        return ret;
     }
 
     /* If the padding is bad or the plaintext is too large, zero the
@@ -904,7 +907,7 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
      * avoid leaking the padding validity through overall timing or
      * through memory or cache access patterns. */
     bad = mbedtls_ct_uint_mask( bad | output_too_large );
-    NOT_CONSTANT_TIME;
+    // NOT_CONSTANT_TIME;  /* already checked above. */
     for( i = 11; i < ilen; i++ )
         input[i] &= ~bad;
 
