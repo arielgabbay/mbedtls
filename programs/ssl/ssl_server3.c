@@ -21,8 +21,8 @@
 
 #include "ssl_test_lib.h"
 
-#define mbedtls_dont_printf(...) do {} while (0)
-//#define mbedtls_dont_printf mbedtls_printf
+//#define mbedtls_dont_printf(...) do {} while (0)
+#define mbedtls_dont_printf mbedtls_printf
 
 #if defined(MBEDTLS_SSL_TEST_IMPOSSIBLE)
 int main( void )
@@ -39,6 +39,7 @@ int main( void )
 #else /* !MBEDTLS_SSL_TEST_IMPOSSIBLE && MBEDTLS_SSL_SRV_C */
 
 #include <stdint.h>
+#include <unistd.h>
 
 #if !defined(_MSC_VER)
 #include <inttypes.h>
@@ -1336,6 +1337,8 @@ extern int oaep_padding;
 int main( int argc, char *argv[] )
 {
     int ret = 0, len, written, frags, exchanges_left;
+    unsigned num_servers = 1;
+    unsigned server_num = 0;
     int query_config_ret = 0;
     io_ctx_t io_ctx;
     unsigned char* buf = 0;
@@ -2096,6 +2099,12 @@ int main( int argc, char *argv[] )
         else if (strcmp(p, "oaep_padding") == 0) {
             oaep_padding = atoi(q);
         }
+	else if (strcmp(p, "num_servers") == 0) {
+	    num_servers = atoi(q);
+	    if (num_servers == 0 || num_servers > MBEDTLS_NET_LISTEN_BACKLOG) {
+                goto usage;
+	    }
+	}
         else
             goto usage;
     }
@@ -3239,6 +3248,16 @@ reset:
     mbedtls_net_free( &client_fd );
 
     mbedtls_ssl_session_reset( &ssl );
+
+    /* Fork according to number of servers needed. */
+
+    server_num = num_servers - 1;
+    while (server_num > 0) {
+        if (fork() == 0) {
+            break;
+        }
+        server_num--;
+    }	
 
     /*
      * 3. Wait until a client connects
