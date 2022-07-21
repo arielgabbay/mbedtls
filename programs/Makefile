@@ -116,7 +116,6 @@ APPS = \
 	ssl/mini_client \
 	ssl/ssl_client1 \
 	ssl/ssl_client2 \
-	ssl/ssl_client.cpython-38-x86_64-linux-gnu.so \
 	ssl/ssl_context_info \
 	ssl/ssl_fork_server \
 	ssl/ssl_mail_client \
@@ -136,6 +135,7 @@ APPS = \
 	x509/crl_app \
 	x509/load_roots \
 	x509/req_app \
+#	ssl/ssl_client.cpython-38-x86_64-linux-gnu.so \
 # End of APPS
 
 ifdef PTHREAD
