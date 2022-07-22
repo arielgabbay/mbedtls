@@ -22,6 +22,9 @@
  * might be translated to branches by some compilers on some platforms.
  */
 
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "common.h"
 #include "constant_time_internal.h"
 #include "mbedtls/constant_time.h"
@@ -802,9 +805,23 @@ int mbedtls_mpi_lt_mpi_ct( const mbedtls_mpi *X,
 
 #define NOT_CONSTANT_TIME do { \
 	if (bad) { \
-		return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
+			return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
 	} \
-} while (0)
+} while(0) \
+/*
+#define NOT_CONSTANT_TIME do { \
+        if (bad) { \
+                if (stage == 0) { \
+                        return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
+                } \
+                else { \
+                        return 92; \
+        } \
+} while(0) \
+*/
+
+
+int stage;
 
 int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
                                           size_t ilen,
@@ -866,9 +883,24 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     bad |= mbedtls_ct_size_gt( 8, pad_count );
     NOT_CONSTANT_TIME;
 
+    int wait_rand = rand();
+    switch(stage)
+    {
+        // first stage of timing side channel
+        case 2:
+                usleep(50000);
+                break;
+	// second stage of timing side channel
+	case 3:
+		usleep(wait_rand % 100000);
+
+    }
+
+
     /* If the padding is valid, set plaintext_size to the number of
      * remaining bytes after stripping the padding. If the padding
      * is invalid, avoid leaking this fact through the size of the
+     *
      * output: use the maximum message size that fits in the output
      * buffer. Do it without branches to avoid leaking the padding
      * validity through timing. RSA keys are small enough that all the
