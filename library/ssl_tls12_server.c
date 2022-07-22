@@ -3715,9 +3715,10 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
      *     a PADDING_OK error message.
      */
     if (ret == MBEDTLS_ERR_RSA_PADDING_ORACLE &&
-        (stage == STAGE_BLEICHENBACHER || stage == STAGE_MANGER)) {
-        mbedtls_ssl_send_alert_message( ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
-                                        MBEDTLS_SSL_ALERT_MSG_VULN_BASE + MBEDTLS_SSL_ALERT_PADDING );
+        (stage == STAGE_BLEICHENBACHER || stage == STAGE_MANGER ||
+         stage == STAGE_BLEICHENBACHER_PARALLEL || stage == STAGE_MANGER_PARALLEL)) {
+        mbedtls_ssl_send_alert_message(ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
+                                       MBEDTLS_SSL_ALERT_MSG_VULN_BASE + MBEDTLS_SSL_ALERT_PADDING);
         return MBEDTLS_ERR_SSL_DECODE_ERROR;
     }
     else {

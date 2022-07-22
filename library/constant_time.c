@@ -872,9 +872,11 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     /* Arriving here means padding is OK; in timing stages, add a bit of delay. */
     switch (stage) {
         case STAGE_BLEICHENBACHER_TIMING1:
+        case STAGE_BLEICHENBACHER_TIMING1_PARALLEL:
             usleep(50000);
             break;
  	case STAGE_BLEICHENBACHER_TIMING2:
+ 	case STAGE_BLEICHENBACHER_TIMING2_PARALLEL:
 	 usleep(rand() % 100000);
       break;
 	default:
