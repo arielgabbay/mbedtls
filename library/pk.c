@@ -578,7 +578,7 @@ int mbedtls_pk_sign_ext( mbedtls_pk_type_t pk_type,
 #endif /* MBEDTLS_PSA_CRYPTO_C */
 
 static int ctr = 0;
-int oaep_padding = 0;
+int stage = 1;
 
 /*
  * Decrypt message
@@ -594,7 +594,7 @@ int mbedtls_pk_decrypt( mbedtls_pk_context *ctx,
     PK_VALIDATE_RET( olen != NULL );
 
     if (!ctr) {
-        if (oaep_padding) {
+        if (stage >= STAGE_MANGER) {
             mbedtls_rsa_set_padding(ctx->pk_ctx, MBEDTLS_RSA_PKCS_V21, 4);
         }
         ctr++;

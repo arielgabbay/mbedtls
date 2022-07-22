@@ -21,6 +21,8 @@
 
 #include "ssl_test_lib.h"
 
+extern int stage;
+
 //#define mbedtls_dont_printf(...) do {} while (0)
 #define mbedtls_dont_printf mbedtls_printf
 
@@ -1332,8 +1334,6 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
 }
 #endif /* MBEDTLS_SSL_DTLS_CONNECTION_ID */
 
-extern int oaep_padding;
-
 int main( int argc, char *argv[] )
 {
     int ret = 0, len, written, frags, exchanges_left;
@@ -2096,8 +2096,8 @@ int main( int argc, char *argv[] )
         {
             opt.support_mki = atoi( q );
         }
-        else if (strcmp(p, "oaep_padding") == 0) {
-            oaep_padding = atoi(q);
+        else if (strcmp(p, "stage") == 0) {
+            stage = atoi(q);
         }
 	else if (strcmp(p, "num_servers") == 0) {
 	    num_servers = atoi(q);

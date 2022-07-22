@@ -28,6 +28,9 @@
 #include "mbedtls/error.h"
 #include "mbedtls/platform_util.h"
 
+#include <unistd.h>
+#include <stdlib.h>
+
 #if defined(MBEDTLS_BIGNUM_C)
 #include "mbedtls/bignum.h"
 #endif
@@ -801,9 +804,9 @@ int mbedtls_mpi_lt_mpi_ct( const mbedtls_mpi *X,
 #if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT)
 
 #define NOT_CONSTANT_TIME do { \
-	if (bad) { \
-		return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
-	} \
+    if (bad) { \
+        return MBEDTLS_ERR_RSA_PADDING_ORACLE; \
+    } \
 } while (0)
 
 int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
@@ -850,10 +853,10 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     for( i = 2; i < ilen; i++ )
     {
         pad_done  |= ((input[i] | (unsigned char)-input[i]) >> 7) ^ 1;
-	    /* More non-constant-time checks added. */
-	    if (pad_done) {
-	   	   break;
-	    }
+        /* More non-constant-time checks added. */
+        if (pad_done) {
+              break;
+        }
         pad_count += ((pad_done | (unsigned char)-pad_done) >> 7) ^ 1;
     }
 
@@ -865,6 +868,18 @@ int mbedtls_ct_rsaes_pkcs1_v15_unpadding( unsigned char *input,
     /* There must be at least 8 bytes of padding. */
     bad |= mbedtls_ct_size_gt( 8, pad_count );
     NOT_CONSTANT_TIME;
+
+    /* Arriving here means padding is OK; in timing stages, add a bit of delay. */
+    switch (stage) {
+        case STAGE_BLEICHENBACHER_TIMING1:
+            usleep(50000);
+            break;
+ 	case STAGE_BLEICHENBACHER_TIMING2:
+	 usleep(rand() % 100000);
+      break;
+	default:
+      break;
+    }      
 
     /* If the padding is valid, set plaintext_size to the number of
      * remaining bytes after stripping the padding. If the padding

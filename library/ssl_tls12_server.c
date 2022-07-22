@@ -3711,11 +3711,14 @@ static int ssl_parse_encrypted_pms( mbedtls_ssl_context *ssl,
         return( ret );
 #endif /* MBEDTLS_SSL_ASYNC_PRIVATE */
 
-    /* Vulnerable bit. */
-    if (ret == MBEDTLS_ERR_RSA_PADDING_ORACLE) {
+    /* Send a padding-error message if it's that kind of stage. Otherwise always send
+     *     a PADDING_OK error message.
+     */
+    if (ret == MBEDTLS_ERR_RSA_PADDING_ORACLE &&
+        (stage == STAGE_BLEICHENBACHER || stage == STAGE_MANGER)) {
         mbedtls_ssl_send_alert_message( ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,
                                         MBEDTLS_SSL_ALERT_MSG_VULN_BASE + MBEDTLS_SSL_ALERT_PADDING );
-	    return MBEDTLS_ERR_SSL_DECODE_ERROR;
+        return MBEDTLS_ERR_SSL_DECODE_ERROR;
     }
     else {
         mbedtls_ssl_send_alert_message(ssl, MBEDTLS_SSL_ALERT_LEVEL_FATAL,

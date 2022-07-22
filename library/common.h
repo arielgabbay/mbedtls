@@ -25,6 +25,16 @@
 
 #include "mbedtls/build_info.h"
 
+extern int stage;
+
+typedef enum {
+	STAGE_BLEICHENBACHER=1,
+	STAGE_BLEICHENBACHER_TIMING1=2,
+	STAGE_BLEICHENBACHER_TIMING2=3,
+	STAGE_MANGER=4,
+	STAGE_MAX
+} stage_t;
+
 #include <stdint.h>
 
 /** Helper to define a function as static except when building invasive tests.
