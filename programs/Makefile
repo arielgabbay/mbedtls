@@ -367,7 +367,7 @@ ssl/ssl_server2$(EXEXT): ssl/ssl_server2.c $(SSL_TEST_DEPS)
 
 ssl/ssl_server3$(EXEXT): ssl/ssl_server3.c $(SSL_TEST_DEPS)
 	echo "  CC    ssl/ssl_server3.c"
-	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) ssl/ssl_server3.c $(SSL_TEST_OBJECTS) $(LOCAL_LDFLAGS) $(LDFLAGS) -o $@
+	$(CC) $(LOCAL_CFLAGS) $(CFLAGS) -pthread ssl/ssl_server3.c $(SSL_TEST_OBJECTS) $(LOCAL_LDFLAGS) $(LDFLAGS) -o $@
 
 ssl/ssl_context_info$(EXEXT): ssl/ssl_context_info.c test/query_config.o test/query_config.h $(DEP)
 	echo "  CC    ssl/ssl_context_info.c"

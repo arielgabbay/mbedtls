@@ -42,6 +42,8 @@ int main( void )
 
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/mman.h>
+#include <pthread.h>
 
 #if !defined(_MSC_VER)
 #include <inttypes.h>
@@ -1334,9 +1336,19 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
 }
 #endif /* MBEDTLS_SSL_DTLS_CONNECTION_ID */
 
+#define CONN_TIMEOUT (15 * 60)
+#define MAX_CONN_TIME (180)
+
+static struct {
+    struct timespec next_wakeup;
+    pthread_mutex_t mutex;
+} * wakeup_info;
+
 int main( int argc, char *argv[] )
 {
     int ret = 0, len, written, frags, exchanges_left;
+    struct timespec connection_start, curr_time;
+    pthread_mutexattr_t mutexattr;
     unsigned num_servers = 1;
     unsigned server_num = 0;
     int query_config_ret = 0;
@@ -2099,12 +2111,12 @@ int main( int argc, char *argv[] )
         else if (strcmp(p, "stage") == 0) {
             stage = atoi(q);
         }
-	else if (strcmp(p, "num_servers") == 0) {
-	    num_servers = atoi(q);
-	    if (num_servers == 0 || num_servers > MBEDTLS_NET_LISTEN_BACKLOG) {
+        else if (strcmp(p, "num_servers") == 0) {
+            num_servers = atoi(q);
+            if (num_servers == 0 || num_servers > MBEDTLS_NET_LISTEN_BACKLOG) {
                 goto usage;
-	    }
-	}
+            }
+        }
         else
             goto usage;
     }
@@ -3218,6 +3230,28 @@ int main( int argc, char *argv[] )
     }
     mbedtls_dont_printf( " ok\n" );
 
+    /* Fork according to number of servers needed. */
+
+    if (stage == 2 || stage == 4 || stage == 6) {
+        wakeup_info = mmap(NULL, sizeof(*wakeup_info), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        clock_gettime(CLOCK_MONOTONIC_COARSE, &wakeup_info->next_wakeup);
+        if (pthread_mutexattr_init(&mutexattr) != 0) {
+            goto exit;
+        }
+        if (pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED) != 0) {
+            goto exit;
+        }
+        pthread_mutex_init(&wakeup_info->mutex, &mutexattr);
+    }
+
+    server_num = num_servers - 1;
+    while (server_num > 0) {
+        if (fork() == 0) {
+            break;
+        }
+        server_num--;
+    }
+
 reset:
 #if !defined(_WIN32)
     if( received_sigterm )
@@ -3249,16 +3283,6 @@ reset:
 
     mbedtls_ssl_session_reset( &ssl );
 
-    /* Fork according to number of servers needed. */
-
-    server_num = num_servers - 1;
-    while (server_num > 0) {
-        if (fork() == 0) {
-            break;
-        }
-        server_num--;
-    }	
-
     /*
      * 3. Wait until a client connects
      */
@@ -3283,6 +3307,19 @@ reset:
         goto exit;
     }
 
+    if (stage == 2 || stage == 4 || stage == 6) {
+        clock_gettime(CLOCK_MONOTONIC_COARSE, &curr_time);
+        pthread_mutex_lock(&wakeup_info->mutex);
+        if (curr_time.tv_sec <= wakeup_info->next_wakeup.tv_sec) {
+            ret = MBEDTLS_ERR_NET_ACCEPT_FAILED;
+            pthread_mutex_unlock(&wakeup_info->mutex);
+            goto reset;
+        }
+        pthread_mutex_unlock(&wakeup_info->mutex);
+    }
+
+    clock_gettime(CLOCK_MONOTONIC_COARSE, &connection_start);
+
     if( opt.nbio > 0 )
         ret = mbedtls_net_set_nonblock( &client_fd );
     else
@@ -3297,7 +3334,7 @@ reset:
 
 #if defined(MBEDTLS_SSL_DTLS_HELLO_VERIFY)
     if( opt.transport == MBEDTLS_SSL_TRANSPORT_DATAGRAM )
-    {
+    { 
         if( ( ret = mbedtls_ssl_set_client_transport_id( &ssl,
                         client_ip, cliip_len ) ) != 0 )
         {
@@ -3342,6 +3379,29 @@ handshake:
         }
 #endif /* MBEDTLS_SSL_ASYNC_PRIVATE */
 
+        /* Check if the connection has gone on for too long or if another process
+         *     has indicated that we should close the connection and wait. */
+        if (stage == 2 || stage == 4 || stage == 6) {
+            clock_gettime(CLOCK_MONOTONIC_COARSE, &curr_time);
+            /* We ignore microseconds in these calculations */
+            pthread_mutex_lock(&wakeup_info->mutex);
+            if (curr_time.tv_sec - connection_start.tv_sec > MAX_CONN_TIME) {
+                time_t next_wakeup_sec = curr_time.tv_sec + CONN_TIMEOUT;
+                if (wakeup_info->next_wakeup.tv_sec < next_wakeup_sec) {
+                    wakeup_info->next_wakeup.tv_sec = next_wakeup_sec;
+                }
+                ret = MBEDTLS_ERR_NET_ACCEPT_FAILED;
+            pthread_mutex_unlock(&wakeup_info->mutex);
+                break;
+            }
+            if (curr_time.tv_sec <= wakeup_info->next_wakeup.tv_sec) {
+                ret = MBEDTLS_ERR_NET_ACCEPT_FAILED;
+            pthread_mutex_unlock(&wakeup_info->mutex);
+                break;
+            }
+            pthread_mutex_unlock(&wakeup_info->mutex);
+        }
+    
         if (ret == MBEDTLS_ERR_SSL_DECODE_ERROR) {
             ret = MBEDTLS_ERR_SSL_CLIENT_RECONNECT;
             break;
