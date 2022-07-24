@@ -1338,7 +1338,7 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
 
 #define CONN_TIMEOUT (15 * 60)
 #define MAX_CONN_TIME (180)
-#define MAX_QUERIES (10000)
+static unsigned max_queries[] = {0, 0, 10000, 0, 10000, 0, 10000, 0, 500};
 
 static struct {
     struct timespec next_wakeup;
@@ -3234,7 +3234,7 @@ int main( int argc, char *argv[] )
 
     /* Fork according to number of servers needed. */
 
-    if (stage == 2 || stage == 4 || stage == 6) {
+    if (stage == 2 || stage == 4 || stage == 6 || stage == 8) {
         wakeup_info = mmap(NULL, sizeof(*wakeup_info), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
         clock_gettime(CLOCK_MONOTONIC_COARSE, &wakeup_info->next_wakeup);
         if (pthread_mutexattr_init(&mutexattr) != 0) {
@@ -3310,7 +3310,7 @@ reset:
     }
 
     /* If we're on time-out, deny (close) the connection. */
-    if (stage == 2 || stage == 4 || stage == 6) {
+    if (stage == 2 || stage == 4 || stage == 6 || stage == 8) {
         clock_gettime(CLOCK_MONOTONIC_COARSE, &curr_time);
         pthread_mutex_lock(&wakeup_info->mutex);
         if (curr_time.tv_sec <= wakeup_info->next_wakeup.tv_sec) {
@@ -3385,12 +3385,12 @@ handshake:
 
         /* Check if the connection has gone on for too long or if another process
          *     has indicated that we should close the connection and wait. */
-        if (stage == 2 || stage == 4 || stage == 6) {
+        if (stage == 2 || stage == 4 || stage == 6 || stage == 8) {
             clock_gettime(CLOCK_MONOTONIC_COARSE, &curr_time);
             /* We ignore microseconds in these calculations */
             pthread_mutex_lock(&wakeup_info->mutex);
             //if (curr_time.tv_sec - connection_start.tv_sec > MAX_CONN_TIME) {
-            if (total_queries > MAX_QUERIES) {
+            if (total_queries > max_queries[stage]) {
                 time_t next_wakeup_sec = curr_time.tv_sec + CONN_TIMEOUT;
                 total_queries = 0;
                 if (wakeup_info->next_wakeup.tv_sec < next_wakeup_sec) {
