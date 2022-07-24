@@ -1338,6 +1338,7 @@ int report_cid_usage( mbedtls_ssl_context *ssl,
 
 #define CONN_TIMEOUT (15 * 60)
 #define MAX_CONN_TIME (180)
+#define MAX_QUERIES (10000)
 
 static struct {
     struct timespec next_wakeup;
@@ -1349,6 +1350,7 @@ int main( int argc, char *argv[] )
     int ret = 0, len, written, frags, exchanges_left;
     struct timespec connection_start, curr_time;
     pthread_mutexattr_t mutexattr;
+    unsigned total_queries = 0;
     unsigned num_servers = 1;
     unsigned server_num = 0;
     int query_config_ret = 0;
@@ -3307,10 +3309,12 @@ reset:
         goto exit;
     }
 
+    /* If we're on time-out, deny (close) the connection. */
     if (stage == 2 || stage == 4 || stage == 6) {
         clock_gettime(CLOCK_MONOTONIC_COARSE, &curr_time);
         pthread_mutex_lock(&wakeup_info->mutex);
         if (curr_time.tv_sec <= wakeup_info->next_wakeup.tv_sec) {
+            total_queries = 0;
             ret = MBEDTLS_ERR_NET_ACCEPT_FAILED;
             pthread_mutex_unlock(&wakeup_info->mutex);
             goto reset;
@@ -3385,24 +3389,28 @@ handshake:
             clock_gettime(CLOCK_MONOTONIC_COARSE, &curr_time);
             /* We ignore microseconds in these calculations */
             pthread_mutex_lock(&wakeup_info->mutex);
-            if (curr_time.tv_sec - connection_start.tv_sec > MAX_CONN_TIME) {
+            //if (curr_time.tv_sec - connection_start.tv_sec > MAX_CONN_TIME) {
+            if (total_queries > MAX_QUERIES) {
                 time_t next_wakeup_sec = curr_time.tv_sec + CONN_TIMEOUT;
+                total_queries = 0;
                 if (wakeup_info->next_wakeup.tv_sec < next_wakeup_sec) {
                     wakeup_info->next_wakeup.tv_sec = next_wakeup_sec;
                 }
                 ret = MBEDTLS_ERR_NET_ACCEPT_FAILED;
-            pthread_mutex_unlock(&wakeup_info->mutex);
+                pthread_mutex_unlock(&wakeup_info->mutex);
                 break;
             }
             if (curr_time.tv_sec <= wakeup_info->next_wakeup.tv_sec) {
+                total_queries = 0;
                 ret = MBEDTLS_ERR_NET_ACCEPT_FAILED;
-            pthread_mutex_unlock(&wakeup_info->mutex);
+                pthread_mutex_unlock(&wakeup_info->mutex);
                 break;
             }
             pthread_mutex_unlock(&wakeup_info->mutex);
         }
     
         if (ret == MBEDTLS_ERR_SSL_DECODE_ERROR) {
+            total_queries += 1;
             ret = MBEDTLS_ERR_SSL_CLIENT_RECONNECT;
             break;
         }
